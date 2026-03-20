@@ -1,3 +1,7 @@
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-0.1.0-green)
+![Platform](https://img.shields.io/badge/platform-Linux-orange)
+
 # LOQ Control
 
 Open-source hardware control center for Lenovo LOQ laptops on Linux.
@@ -22,6 +26,10 @@ Open-source hardware control center for Lenovo LOQ laptops on Linux.
 - Background optimization daemon
 - Flatpak / Deb packaging
 
+## 📸 Screenshots
+
+![Dashboard]
+'/home/vaibhavpandit/Pictures/Screenshots/Screenshot from 2026-03-20 17-49-13.png' 
 ## Developer
 
 **Vaibhav Sharma (Vibhu Pandit)**  
