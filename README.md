@@ -24,7 +24,7 @@ Open-source hardware control center for Lenovo LOQ laptops on Linux.
 
 ## Developer
 
-**Vaibhav Sharma (Vibhu Pandit)**  
+**Vaibhav Sharma (Nutricalboii)**  
 GitHub: https://github.com/nutricalboii
 
 ## License
