@@ -32,7 +32,7 @@ Open-source hardware control center for Lenovo LOQ laptops on Linux.
 '/home/vaibhavpandit/Pictures/Screenshots/Screenshot from 2026-03-20 17-49-13.png' 
 ## Developer
 
-**Vaibhav Sharma (Vibhu Pandit)**  
+**Vaibhav Sharma (Nutricalboii)**  
 GitHub: https://github.com/nutricalboii
 
 ## License
