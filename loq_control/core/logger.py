@@ -1,53 +1,158 @@
-"""
-Structured rotating logger for LOQ Control.
-
-Writes to ~/.local/share/loq-control/loq-control.log
-Console handler at WARNING level; file handler at DEBUG level.
-"""
-
 import logging
 import logging.handlers
-import os
+import threading
 from pathlib import Path
-
-_LOG_DIR = Path.home() / ".local" / "share" / "loq-control"
-_LOG_FILE = _LOG_DIR / "loq-control.log"
-_MAX_BYTES = 1 * 1024 * 1024  # 1 MB
-_BACKUP_COUNT = 3
-
-_logger: logging.Logger | None = None
+import sys
 
 
-def get_logger(name: str = "loq-control") -> logging.Logger:
-    """Return the shared application logger, creating it on first call."""
-    global _logger
-    if _logger is not None:
-        return _logger
+class LoqLogger:
+    """
+    Unified Logging + Diagnostics Framework
 
-    _LOG_DIR.mkdir(parents=True, exist_ok=True)
+    Features:
+    - Rotating logs
+    - Multi-channel hardware logging
+    - Safe fallback
+    - Debug mode streaming
+    """
 
-    _logger = logging.getLogger(name)
-    _logger.setLevel(logging.DEBUG)
+    _instance = None
+    _lock = threading.Lock()
 
-    # Prevent duplicate handlers on reload
-    if not _logger.handlers:
-        # File handler — DEBUG level, rotating
-        fh = logging.handlers.RotatingFileHandler(
-            _LOG_FILE, maxBytes=_MAX_BYTES, backupCount=_BACKUP_COUNT
+    LOG_DIR = Path.home() / ".local" / "state" / "loq-control" / "logs"
+
+    CHANNELS = [
+        "daemon",
+        "hardware",
+        "gpu",
+        "cpu",
+        "thermal",
+        "firmware",
+        "ui",
+        "events",
+        "ec"
+    ]
+
+    def __init__(self, debug=False):
+        self.debug = debug
+        self.loggers = {}
+
+        self.LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+        for channel in self.CHANNELS:
+            self.loggers[channel] = self._create_logger(channel)
+
+    @classmethod
+    def get(cls, debug=False):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = LoqLogger(debug=debug)
+        return cls._instance
+
+    # --------------------------------------------------
+    # LOGGER CREATION
+    # --------------------------------------------------
+
+    def _create_logger(self, name):
+        logger = logging.getLogger(f"loq.{name}")
+        logger.setLevel(logging.DEBUG)
+
+        if logger.handlers:
+            return logger
+
+        file_handler = logging.handlers.RotatingFileHandler(
+            self.LOG_DIR / f"{name}.log",
+            maxBytes=2 * 1024 * 1024,
+            backupCount=3
         )
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(logging.Formatter(
-            "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        ))
-        _logger.addHandler(fh)
 
-        # Console handler — WARNING+ only
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.WARNING)
-        ch.setFormatter(logging.Formatter(
-            "%(levelname)s: %(message)s"
-        ))
-        _logger.addHandler(ch)
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(threadName)s | %(message)s"
+        )
 
-    return _logger
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+        if self.debug:
+            stream = logging.StreamHandler(sys.stdout)
+            stream.setFormatter(formatter)
+            logger.addHandler(stream)
+
+        return logger
+
+    # --------------------------------------------------
+    # PUBLIC API
+    # --------------------------------------------------
+
+    def log(self, channel, level, message):
+        try:
+            logger = self.loggers.get(channel)
+            if not logger:
+                # Fallback to daemon if channel is unregistered
+                logger = self.loggers.get("daemon")
+                if not logger:
+                    return
+
+            if level == "debug":
+                logger.debug(message)
+            elif level == "info":
+                logger.info(message)
+            elif level == "warn":
+                logger.warning(message)
+            elif level == "error":
+                logger.error(message)
+            elif level == "critical":
+                logger.critical(message)
+
+        except Exception:
+            # logging must NEVER crash system
+            pass
+
+    # Convenience wrappers
+
+    def daemon(self, level, msg):
+        self.log("daemon", level, msg)
+
+    def gpu(self, level, msg):
+        self.log("gpu", level, msg)
+
+    def cpu(self, level, msg):
+        self.log("cpu", level, msg)
+
+    def thermal(self, level, msg):
+        self.log("thermal", level, msg)
+
+    def firmware(self, level, msg):
+        self.log("firmware", level, msg)
+
+    def hardware(self, level, msg):
+        self.log("hardware", level, msg)
+
+    def ui(self, level, msg):
+        self.log("ui", level, msg)
+
+
+# --------------------------------------------------
+# BACKWARD COMPATIBILITY SHIM FOR LEGACY CODEBASE
+# --------------------------------------------------
+
+class ShimLogger:
+    """Wraps LoqLogger to support standard standard .info()/.debug() calls"""
+    def __init__(self, name: str):
+        # Map loq-control.events -> events, loq-control.daemon -> daemon
+        self.channel = name.split(".")[-1]
+        self.loq = LoqLogger.get()
+
+    def _format(self, msg, *args):
+        return str(msg) % args if args else str(msg)
+
+    def debug(self, msg, *args): self.loq.log(self.channel, "debug", self._format(msg, *args))
+    def info(self, msg, *args): self.loq.log(self.channel, "info", self._format(msg, *args))
+    def warning(self, msg, *args): self.loq.log(self.channel, "warn", self._format(msg, *args))
+    def error(self, msg, *args): self.loq.log(self.channel, "error", self._format(msg, *args))
+    def critical(self, msg, *args): self.loq.log(self.channel, "critical", self._format(msg, *args))
+    def exception(self, msg, *args): self.loq.log(self.channel, "error", self._format(msg, *args) + " (Exception)")
+
+def get_logger(name: str):
+    """Facade for legacy imports"""
+    return ShimLogger(name)

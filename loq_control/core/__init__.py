@@ -15,3 +15,6 @@ from . import config
 from . import capability_probe
 from . import gpu_runtime_manager
 from . import cpu_power_manager
+from . import thermal_manager
+from . import ec_manager
+from . import ec_detection
