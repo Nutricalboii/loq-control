@@ -28,6 +28,12 @@ def start():
 
     # 0. Load or Probe capabilities
     caps = CapabilityProbe.get().load_or_probe()
+    
+    # Merge exact Firmware Intelligence detection
+    from loq_control.core.ec_detection import ECDetection
+    ec_caps = ECDetection.get().get_capabilities()
+    caps.update(ec_caps)
+    
     log.info("Capabilities loaded: %s", caps)
 
     # 1. Start Thermal Telemetry

@@ -40,6 +40,20 @@ def _read_charger_state() -> Optional[bool]:
             continue
     return None
 
+# ---------------------------------------------------------------------------
+# Platform Profile (Fn+Q) detection
+# ---------------------------------------------------------------------------
+
+_PLATFORM_PROFILE_PATH = "/sys/firmware/acpi/platform_profile"
+
+def _read_platform_profile() -> Optional[str]:
+    """Read hardware platform profile to detect Fn+Q external presses."""
+    try:
+        with open(_PLATFORM_PROFILE_PATH, "r") as f:
+            return f.read().strip()
+    except (OSError, FileNotFoundError):
+        return None
+
 
 # ---------------------------------------------------------------------------
 # Event Engine
@@ -128,6 +142,13 @@ class EventEngine:
                 if new_state != old:
                     self._state.force_set("charger_connected", new_state)
                     log.info("Charger event: %s → %s", old, new_state)
+                    
+            new_prof = _read_platform_profile()
+            if new_prof is not None:
+                old_prof = self._state.get("platform_profile")
+                if new_prof != old_prof:
+                    self._state.force_set("platform_profile", new_prof)
+                    log.info("Fn+Q profile event (udev): %s → %s", old_prof, new_prof)
 
     def _run_poll(self):
         """Fallback: poll sysfs at a fixed interval."""
@@ -138,5 +159,12 @@ class EventEngine:
                 if new_state != old:
                     self._state.force_set("charger_connected", new_state)
                     log.info("Charger poll: %s → %s", old, new_state)
+                    
+            new_prof = _read_platform_profile()
+            if new_prof is not None:
+                old_prof = self._state.get("platform_profile")
+                if new_prof != old_prof:
+                    self._state.force_set("platform_profile", new_prof)
+                    log.info("Fn+Q profile event (poll): %s → %s", old_prof, new_prof)
 
             self._stop.wait(self._poll_interval)
