@@ -66,8 +66,30 @@ The goal is to build a **fully featured Linux control ecosystem** for gaming lap
 
 ## 🧱 Architecture
 
-Project follows a **modular Linux engineering architecture**.
-loq_control/ │ ├── core/ │   ├── gpu.py │   ├── power.py │   ├── thermals.py │   ├── monitor.py │   ├── battery.py │   ├── fan.py │   ├── presets.py │ ├── services/ │   ├── auto_gpu.py │   ├── daemon.py │ ├── gui/ │   ├── main.py │   ├── dashboard_page.py │   ├── gpu_page.py │   ├── power_page.py │   ├── thermals_page.py │   ├── graph_widget.py │ └── assets/
+loq_control/
+│
+├── core/
+│   ├── gpu.py
+│   ├── power.py
+│   ├── thermals.py
+│   ├── monitor.py
+│   ├── battery.py
+│   ├── fan.py
+│   ├── presets.py
+│
+├── services/
+│   ├── auto_gpu.py
+│   ├── daemon.py
+│
+├── gui/
+│   ├── main.py
+│   ├── dashboard_page.py
+│   ├── gpu_page.py
+│   ├── power_page.py
+│   ├── thermals_page.py
+│   ├── graph_widget.py
+│
+└── assets/
 
 This design allows:
 
