@@ -1,40 +1,58 @@
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Version](https://img.shields.io/badge/version-0.1.0-green)
-![Platform](https://img.shields.io/badge/platform-Linux-orange)
+Open-source hardware control suite for Lenovo LOQ laptops running Linux.
 
-# LOQ Control
+This project provides a unified control center for GPU modes, performance profiles,
+thermal monitoring and system automation — similar to Lenovo Vantage on Windows.
 
-Open-source hardware control center for Lenovo LOQ laptops on Linux.
+Why this project exists
 
-## Features
+Modern performance laptops expose powerful hardware controls such as hybrid GPUs,
+platform performance modes and intelligent battery behaviour.
 
-- GPU Mode Switching (Integrated / Hybrid / NVIDIA)
-- Automatic GPU switching based on charger state
-- Power Profiles (Battery / Balanced / Performance)
-- Real-time CPU / RAM / Temperature / Battery Monitoring
-- Live Performance Graphs
-- Reboot workflow for hardware mode changes
-- Modular architecture for future expansion
+On Linux these controls exist — but they are scattered across terminal utilities.
 
-## Planned
+LOQ Control Center brings them together into a single clean interface.
 
-- Fan control & thermal tuning
-- Battery conservation mode
-- GPU power monitoring
-- Keyboard backlight control
-- Gaming performance presets
-- Background optimization daemon
-- Flatpak / Deb packaging
+Current Features
 
-## 📸 Screenshots
+GPU Control
+• Integrated GPU mode
+• Hybrid (on-demand) mode
+• Dedicated NVIDIA mode
+• Automatic GPU switching based on charger state
 
-![Dashboard]
-'/home/vaibhavpandit/Pictures/Screenshots/Screenshot from 2026-03-20 17-49-13.png' 
-## Developer
+Performance Modes
+• Power Saver
+• Balanced
+• Performance
+• Platform ACPI profile integration
 
-**Vaibhav Sharma (Nutricalboii)**  
-GitHub: https://github.com/nutricalboii
+Monitoring
+• CPU usage
+• RAM usage
+• Temperature telemetry
+• Battery power draw estimation
+• Live performance graph
 
-## License
+Architecture
 
-MIT
+The project follows a modular structure:
+
+core → hardware control logic  
+services → background automation  
+gui → user interface  
+
+This separation allows future deep hardware features without breaking UI.
+
+Roadmap
+
+• Fan curve control  
+• GPU power gating  
+• CPU power limit tuning  
+• RGB keyboard control  
+• system tray daemon 
+• packaging (.deb / Flatpak)
+
+Author
+
+Vaibhav Sharma 
+GitHub: nutricalboii
