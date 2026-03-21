@@ -1,3 +1,9 @@
+"""
+Real-time performance graph widget.
+
+Accepts an AppController reference instead of importing core modules directly.
+"""
+
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib
@@ -5,18 +11,18 @@ from gi.repository import Gtk, GLib
 from matplotlib.backends.backend_gtk4agg import FigureCanvasGTK4Agg as FigureCanvas
 from matplotlib.figure import Figure
 
-from loq_control.core import monitor, hardware
-
 
 class PerformanceGraph(Gtk.Box):
 
-    def __init__(self):
+    def __init__(self, controller=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
 
         self.set_margin_top(10)
         self.set_margin_bottom(10)
         self.set_margin_start(10)
         self.set_margin_end(10)
+
+        self.ctrl = controller
 
         self.cpu_data = []
         self.ram_data = []
@@ -31,12 +37,14 @@ class PerformanceGraph(Gtk.Box):
         GLib.timeout_add(1000, self.update)
 
     def update(self):
+        if self.ctrl is None:
+            return True
 
-        cpu = monitor.cpu_usage()
-        ram = monitor.ram_usage()
+        cpu = self.ctrl.cpu_usage()
+        ram = self.ctrl.ram_usage()
 
         try:
-            pwr = float(hardware.battery_power())
+            pwr = float(self.ctrl.battery_power())
         except (ValueError, TypeError):
             pwr = 0.0
 
