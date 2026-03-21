@@ -30,3 +30,17 @@ def gpu_usage():
         return float(out)
     except:
         return 0
+
+
+def cpu_wattage():
+    """Fetch package power via sensors (RAPL)."""
+    try:
+        out = subprocess.check_output("sensors", shell=True).decode()
+        for line in out.splitlines():
+            if "package id 0:" in line.lower() and "power" in line.lower():
+                # example: "package id 0:  +35.21 W"
+                return float(line.split()[3])
+    except:
+        pass
+    return 15.0 # fallback baseline
+

@@ -84,7 +84,7 @@ class LoqLogger:
     # PUBLIC API
     # --------------------------------------------------
 
-    def log(self, channel, level, message):
+    def log(self, channel, level, message, *args):
         try:
             logger = self.loggers.get(channel)
             if not logger:
@@ -94,15 +94,15 @@ class LoqLogger:
                     return
 
             if level == "debug":
-                logger.debug(message)
+                logger.debug(message, *args)
             elif level == "info":
-                logger.info(message)
+                logger.info(message, *args)
             elif level == "warn":
-                logger.warning(message)
+                logger.warning(message, *args)
             elif level == "error":
-                logger.error(message)
+                logger.error(message, *args)
             elif level == "critical":
-                logger.critical(message)
+                logger.critical(message, *args)
 
         except Exception:
             # logging must NEVER crash system
@@ -110,26 +110,15 @@ class LoqLogger:
 
     # Convenience wrappers
 
-    def daemon(self, level, msg):
-        self.log("daemon", level, msg)
-
-    def gpu(self, level, msg):
-        self.log("gpu", level, msg)
-
-    def cpu(self, level, msg):
-        self.log("cpu", level, msg)
-
-    def thermal(self, level, msg):
-        self.log("thermal", level, msg)
-
-    def firmware(self, level, msg):
-        self.log("firmware", level, msg)
-
-    def hardware(self, level, msg):
-        self.log("hardware", level, msg)
-
-    def ui(self, level, msg):
-        self.log("ui", level, msg)
+    def daemon(self, level, msg, *args): self.log("daemon", level, msg, *args)
+    def gpu(self, level, msg, *args): self.log("gpu", level, msg, *args)
+    def cpu(self, level, msg, *args): self.log("cpu", level, msg, *args)
+    def thermal(self, level, msg, *args): self.log("thermal", level, msg, *args)
+    def firmware(self, level, msg, *args): self.log("firmware", level, msg, *args)
+    def hardware(self, level, msg, *args): self.log("hardware", level, msg, *args)
+    def ui(self, level, msg, *args): self.log("ui", level, msg, *args)
+    def events(self, level, msg, *args): self.log("events", level, msg, *args)
+    def ec(self, level, msg, *args): self.log("ec", level, msg, *args)
 
 
 # --------------------------------------------------

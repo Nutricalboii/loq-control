@@ -1,0 +1,39 @@
+label.heading {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+label.caption {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.status-badge {
+    border-radius: 12px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.badge-blue { background-color: #3584e4; color: white; }
+.badge-green { background-color: #2ec27e; color: white; }
+.badge-red { background-color: #e01b24; color: white; }
+.badge-orange { background-color: #ff7800; color: white; }
+.badge-grey { background-color: #9a9996; color: white; }
+
+.card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 140px;
+}
+
+.monospace {
+    font-family: "Monospace", "Courier New", Courier, monospace;
+    font-size: 0.9rem;
+}
+
+.sidebar-button {
+    padding: 10px;
+}

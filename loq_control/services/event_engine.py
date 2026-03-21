@@ -13,10 +13,10 @@ import threading
 import time
 from typing import Optional
 
-from loq_control.core.logger import get_logger
+from loq_control.core.logger import LoqLogger
 from loq_control.core.state_manager import StateManager
 
-log = get_logger("loq-control.events")
+log = LoqLogger.get()
 
 # ---------------------------------------------------------------------------
 # Charger detection (sysfs fallback — always works)
@@ -81,14 +81,14 @@ class EventEngine:
             self._udev_monitor = pyudev.Monitor.from_netlink(ctx)
             self._udev_monitor.filter_by(subsystem="power_supply")
             self._use_udev = True
-            log.info("EventEngine: pyudev available — using kernel events for charger")
+            log.events("info", "EventEngine: pyudev available — using kernel events for charger")
         except ImportError:
-            log.warning(
+            log.events("warn", 
                 "EventEngine: pyudev not installed — falling back to %ss poll",
                 self._poll_interval,
             )
         except Exception as e:
-            log.warning("EventEngine: pyudev setup failed (%s) — using poll", e)
+            log.events("warn", "EventEngine: pyudev setup failed (%s) — using poll", e)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -100,13 +100,13 @@ class EventEngine:
         self._stop.clear()
         self._thread = threading.Thread(target=self._run, daemon=True, name="event-engine")
         self._thread.start()
-        log.info("EventEngine started")
+        log.events("info", "EventEngine started")
 
     def stop(self):
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=3)
-        log.info("EventEngine stopped")
+        log.events("info", "EventEngine stopped")
 
     # ------------------------------------------------------------------
     # Main loop
@@ -117,7 +117,7 @@ class EventEngine:
         initial = _read_charger_state()
         if initial is not None:
             self._state.force_set("charger_connected", initial)
-            log.info("Initial charger state: %s", initial)
+            log.events("info", "Initial charger state: %s", initial)
 
         if self._use_udev:
             self._run_udev()
@@ -141,14 +141,14 @@ class EventEngine:
                 old = self._state.get("charger_connected")
                 if new_state != old:
                     self._state.force_set("charger_connected", new_state)
-                    log.info("Charger event: %s → %s", old, new_state)
+                    log.events("info", "Charger event: %s → %s", old, new_state)
                     
             new_prof = _read_platform_profile()
             if new_prof is not None:
                 old_prof = self._state.get("platform_profile")
                 if new_prof != old_prof:
                     self._state.force_set("platform_profile", new_prof)
-                    log.info("Fn+Q profile event (udev): %s → %s", old_prof, new_prof)
+                    log.events("info", "Fn+Q profile event (udev): %s → %s", old_prof, new_prof)
 
     def _run_poll(self):
         """Fallback: poll sysfs at a fixed interval."""
@@ -158,13 +158,13 @@ class EventEngine:
                 old = self._state.get("charger_connected")
                 if new_state != old:
                     self._state.force_set("charger_connected", new_state)
-                    log.info("Charger poll: %s → %s", old, new_state)
+                    log.events("info", "Charger poll: %s → %s", old, new_state)
                     
             new_prof = _read_platform_profile()
             if new_prof is not None:
                 old_prof = self._state.get("platform_profile")
                 if new_prof != old_prof:
                     self._state.force_set("platform_profile", new_prof)
-                    log.info("Fn+Q profile event (poll): %s → %s", old_prof, new_prof)
+                    log.events("info", "Fn+Q profile event (poll): %s → %s", old_prof, new_prof)
 
             self._stop.wait(self._poll_interval)

@@ -18,11 +18,11 @@ from dataclasses import dataclass
 from typing import Optional
 
 from loq_control.core.state_manager import StateManager
-from loq_control.core.logger import get_logger
+from loq_control.core.logger import LoqLogger
 from loq_control.core.cpu_power_manager import CPUPowerManager
 from loq_control.core import gpu, power, fan, battery
 
-log = get_logger("loq-control.hw")
+log = LoqLogger.get()
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +123,7 @@ class HardwareService:
         cm = battery.get_conservation_state()
         self._state.force_set("conservation_mode", cm)
 
-        log.info("State synced from hardware: %s", self._state.get_state())
+        log.hardware("info", "State synced from hardware: %s", self._state.get_state())
 
     # ------------------------------------------------------------------
     # GPU
@@ -144,16 +144,16 @@ class HardwareService:
                 self._state.set_manual_override()
 
             # 3. Execute
-            log.info("[%s] GPU switch → %s", source, mode)
+            log.hardware("info", "[%s] GPU switch → %s", source, mode)
             ok = _call_hw(_GPU_WRITERS, mode)
 
             if not ok:
-                log.error("[%s] GPU switch to '%s' FAILED", source, mode)
+                log.hardware("error", "[%s] GPU switch to '%s' FAILED", source, mode)
                 return HWResult(False, f"prime-select failed for '{mode}'")
 
             # 4. Update state
             self._state.force_set("gpu_mode", mode)
-            log.info("[%s] GPU mode now: %s", source, mode)
+            log.hardware("info", "[%s] GPU mode now: %s", source, mode)
 
             return HWResult(True, f"GPU → {mode}", needs_reboot=True)
 
@@ -176,7 +176,7 @@ class HardwareService:
             if source in ("gui", "cli"):
                 self._state.set_manual_override()
 
-            log.info("[%s] Power profile → %s", source, profile)
+            log.hardware("info", "[%s] Power profile → %s", source, profile)
 
             # Apply CPU Limits first
             cpu_prof = "quiet" if profile == "power-saver" else profile
@@ -186,11 +186,11 @@ class HardwareService:
             ok = _call_hw(_POWER_WRITERS, profile)
 
             if not ok:
-                log.error("[%s] Power profile '%s' FAILED", source, profile)
+                log.hardware("error", "[%s] Power profile '%s' FAILED", source, profile)
                 return HWResult(False, f"powerprofilesctl failed for '{profile}'")
 
             self._state.force_set("power_profile", profile)
-            log.info("[%s] Power profile now: %s", source, profile)
+            log.hardware("info", "[%s] Power profile now: %s", source, profile)
 
             return HWResult(True, f"Power → {profile}")
 
@@ -209,15 +209,15 @@ class HardwareService:
             return HWResult(False, "Another transition in progress")
 
         try:
-            log.info("[%s] Fan mode → %s", source, mode)
+            log.hardware("info", "[%s] Fan mode → %s", source, mode)
             ok = _call_hw(_FAN_WRITERS, mode)
 
             if not ok:
-                log.error("[%s] Fan mode '%s' FAILED", source, mode)
+                log.hardware("error", "[%s] Fan mode '%s' FAILED", source, mode)
                 return HWResult(False, f"Platform profile write failed for '{mode}'")
 
             self._state.force_set("fan_mode", mode)
-            log.info("[%s] Fan mode now: %s", source, mode)
+            log.hardware("info", "[%s] Fan mode now: %s", source, mode)
 
             return HWResult(True, f"Fan → {mode}")
 
@@ -233,15 +233,15 @@ class HardwareService:
             return HWResult(False, "Another transition in progress")
 
         try:
-            log.info("[%s] Conservation → %s", source, enabled)
+            log.hardware("info", "[%s] Conservation → %s", source, enabled)
             ok = battery.conservation_on() if enabled else battery.conservation_off()
 
             if not ok:
-                log.error("[%s] Conservation mode FAILED", source)
+                log.hardware("error", "[%s] Conservation mode FAILED", source)
                 return HWResult(False, "Failed to set conservation mode")
 
             self._state.force_set("conservation_mode", enabled)
-            log.info("[%s] Conservation now: %s", source, enabled)
+            log.hardware("info", "[%s] Conservation now: %s", source, enabled)
 
             return HWResult(True, f"Conservation → {enabled}")
 
