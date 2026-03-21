@@ -1,228 +1,148 @@
 import gi
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gtk, GLib
 
-import subprocess
-import psutil
-import random
+from loq_control.core import monitor, thermals, hardware, gpu, power
+from loq_control.gui.graph_widget import PerformanceGraph
+from loq_control.services import daemon
 
-from loq_control.version import APP_NAME, VERSION
-
-
-# ================= GRAPH =================
-
-class PerformanceGraph(Gtk.DrawingArea):
-
-    def __init__(self):
-        super().__init__()
-        self.set_content_width(420)
-        self.set_content_height(120)
-
-        self.cpu_points = [0]*60
-
-        GLib.timeout_add(1000, self.update_graph)
-        self.set_draw_func(self.draw)
-
-    def update_graph(self):
-        cpu = psutil.cpu_percent()
-        self.cpu_points.pop(0)
-        self.cpu_points.append(cpu)
-        self.queue_draw()
-        return True
-
-    def draw(self, area, cr, width, height):
-
-        cr.set_source_rgb(0.2,0.8,0.4)
-        cr.set_line_width(2)
-
-        step = width/len(self.cpu_points)
-
-        for i,val in enumerate(self.cpu_points):
-            x = i*step
-            y = height - (val/100)*height
-
-            if i==0:
-                cr.move_to(x,y)
-            else:
-                cr.line_to(x,y)
-
-        cr.stroke()
+daemon.start()
 
 
-# ================= MAIN =================
-
-class Dashboard(Gtk.ApplicationWindow):
+class MainWindow(Gtk.ApplicationWindow):
 
     def __init__(self, app):
         super().__init__(application=app)
 
-        self.set_title(f"{APP_NAME} v{VERSION} — Developed by Vaibhav Sharma")
-        self.set_default_size(460,620)
+        self.set_title("LOQ Control Center v0.4 — Vaibhav Sharma")
+        self.set_default_size(1100, 650)
 
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        outer.set_margin_top(15)
-        outer.set_margin_bottom(15)
-        outer.set_margin_start(15)
-        outer.set_margin_end(15)
+        root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self.set_child(root)
 
-        self.set_child(outer)
+        # ================= SIDEBAR =================
+        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        sidebar.set_margin_start(12)
+        sidebar.set_margin_top(12)
+        root.append(sidebar)
 
-        title = Gtk.Label(label="LOQ Hardware Control Center")
-        outer.append(title)
+        dash_btn = Gtk.Button(label="Dashboard")
+        gpu_btn = Gtk.Button(label="GPU Modes")
+        power_btn = Gtk.Button(label="Power Profiles")
 
-        # ===== GPU =====
+        sidebar.append(dash_btn)
+        sidebar.append(gpu_btn)
+        sidebar.append(power_btn)
 
-        outer.append(Gtk.Separator())
+        # ================= STACK =================
+        self.stack = Gtk.Stack()
+        root.append(self.stack)
 
-        gpu_title = Gtk.Label(label="GPU Modes")
-        outer.append(gpu_title)
-
-        igpu = Gtk.Button(label="Integrated Mode")
-        igpu.connect("clicked", self.set_igpu)
-        outer.append(igpu)
-
-        hybrid = Gtk.Button(label="Hybrid Mode")
-        hybrid.connect("clicked", self.set_hybrid)
-        outer.append(hybrid)
-
-        nvidia = Gtk.Button(label="NVIDIA Mode")
-        nvidia.connect("clicked", self.set_nvidia)
-        outer.append(nvidia)
-
-        # ===== POWER =====
-
-        outer.append(Gtk.Separator())
-
-        power_title = Gtk.Label(label="Power Profiles")
-        outer.append(power_title)
-
-        saver = Gtk.Button(label="Power Saver")
-        saver.connect("clicked", lambda x: subprocess.run("powerprofilesctl set power-saver",shell=True))
-        outer.append(saver)
-
-        balanced = Gtk.Button(label="Balanced")
-        balanced.connect("clicked", lambda x: subprocess.run("powerprofilesctl set balanced",shell=True))
-        outer.append(balanced)
-
-        performance = Gtk.Button(label="Performance")
-        performance.connect("clicked", lambda x: subprocess.run("powerprofilesctl set performance",shell=True))
-        outer.append(performance)
-
-        # ===== STATS =====
-
-        outer.append(Gtk.Separator())
-
-        stat_title = Gtk.Label(label="System Monitoring")
-        outer.append(stat_title)
+        # ================= DASHBOARD PAGE =================
+        dash = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        dash.set_margin_top(20)
+        dash.set_margin_start(20)
 
         self.cpu = Gtk.Label()
         self.ram = Gtk.Label()
-        self.batt = Gtk.Label()
+        self.temp = Gtk.Label()
+        self.ssd = Gtk.Label()
+        self.power_draw = Gtk.Label()
 
-        outer.append(self.cpu)
-        outer.append(self.ram)
-        outer.append(self.batt)
-
-        # ===== GRAPH =====
-
-        outer.append(Gtk.Separator())
+        dash.append(self.cpu)
+        dash.append(self.ram)
+        dash.append(self.temp)
+        dash.append(self.ssd)
+        dash.append(self.power_draw)
 
         graph = PerformanceGraph()
-        outer.append(graph)
+        dash.append(graph)
 
-        # ===== ABOUT =====
+        self.stack.add_named(dash, "dash")
 
-        outer.append(Gtk.Separator())
+        # ================= GPU PAGE =================
+        gpu_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        gpu_page.set_margin_top(20)
 
-        about = Gtk.Button(label="About Developer")
-        about.connect("clicked", self.show_about)
-        outer.append(about)
+        igpu = Gtk.Button(label="Integrated Mode")
+        hybrid = Gtk.Button(label="Hybrid Mode")
+        nvidia = Gtk.Button(label="NVIDIA Mode")
 
-        GLib.timeout_add_seconds(2,self.update_stats)
+        gpu_page.append(igpu)
+        gpu_page.append(hybrid)
+        gpu_page.append(nvidia)
 
-    # ================= GPU =================
+        self.stack.add_named(gpu_page, "gpu")
 
-    def set_igpu(self,widget):
-        subprocess.run("sudo envycontrol -s integrated",shell=True)
-        self.ask_reboot()
+        # ================= POWER PAGE =================
+        power_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        power_page.set_margin_top(20)
 
-    def set_hybrid(self,widget):
-        subprocess.run("sudo envycontrol -s hybrid",shell=True)
-        self.ask_reboot()
+        saver = Gtk.Button(label="Battery Saver")
+        balanced = Gtk.Button(label="Balanced")
+        perf = Gtk.Button(label="Performance")
 
-    def set_nvidia(self,widget):
-        subprocess.run("sudo envycontrol -s nvidia",shell=True)
-        self.ask_reboot()
+        power_page.append(saver)
+        power_page.append(balanced)
+        power_page.append(perf)
 
-    # ================= DIALOG =================
+        self.stack.add_named(power_page, "power")
 
-    def ask_reboot(self):
+        # ================= NAVIGATION =================
+        dash_btn.connect("clicked", lambda x: self.stack.set_visible_child_name("dash"))
+        gpu_btn.connect("clicked", lambda x: self.stack.set_visible_child_name("gpu"))
+        power_btn.connect("clicked", lambda x: self.stack.set_visible_child_name("power"))
 
-        dialog = Gtk.Dialog(title="Reboot Required", transient_for=self)
-        dialog.set_modal(True)
+        # GPU actions — thread safe with reboot callback
+        igpu.connect("clicked", lambda x: gpu.igpu(self.ask_reboot))
+        hybrid.connect("clicked", lambda x: gpu.hybrid(self.ask_reboot))
+        nvidia.connect("clicked", lambda x: gpu.nvidia(self.ask_reboot))
 
-        box = dialog.get_content_area()
-        label = Gtk.Label(label="GPU Mode changed.\nSystem reboot required.")
-        box.append(label)
+        # Power actions
+        saver.connect("clicked", lambda x: power.battery())
+        balanced.connect("clicked", lambda x: power.balanced())
+        perf.connect("clicked", lambda x: power.performance())
 
-        reboot = Gtk.Button(label="Reboot Now")
-        later = Gtk.Button(label="Later")
+        self.stack.set_visible_child_name("dash")
 
-        reboot.connect("clicked", lambda x: subprocess.run("systemctl reboot",shell=True))
-        later.connect("clicked", lambda x: dialog.close())
-
-        box.append(reboot)
-        box.append(later)
-
-        dialog.present()
-
-    def show_about(self,widget):
-
-        dialog = Gtk.Dialog(title="About", transient_for=self)
-        dialog.set_modal(True)
-
-        box = dialog.get_content_area()
-
-        txt = Gtk.Label(label=
-        "LOQ Control Center\n\n"
-        "Version: "+VERSION+"\n"
-        "Developer: Vaibhav Sharma\n"
-        "GitHub: nutricalboii\n\n"
-        "Open Source Project"
-        )
-
-        close = Gtk.Button(label="Close")
-        close.connect("clicked", lambda x: dialog.close())
-
-        box.append(txt)
-        box.append(close)
-
-        dialog.present()
-
-    # ================= STATS =================
+        GLib.timeout_add(2000, self.update_stats)
 
     def update_stats(self):
-
-        self.cpu.set_text(f"CPU Usage: {psutil.cpu_percent()} %")
-        self.ram.set_text(f"RAM Usage: {psutil.virtual_memory().percent} %")
-
-        b = psutil.sensors_battery()
-
-        if b:
-            self.batt.set_text(f"Battery: {round(b.percent)} %")
-        else:
-            self.batt.set_text("Battery: AC Connected")
-
+        self.cpu.set_text(f"CPU Usage: {monitor.cpu_usage()} %")
+        self.ram.set_text(f"RAM Usage: {monitor.ram_usage()} %")
+        self.temp.set_text(f"CPU Temp: {thermals.cpu_temp()} °C")
+        self.ssd.set_text(f"SSD Temp: {hardware.ssd_temp()} °C")
+        self.power_draw.set_text(f"Battery Draw: {hardware.battery_power()} W")
         return True
+
+    def ask_reboot(self):
+        GLib.idle_add(self._show_reboot_dialog)
+
+    def _show_reboot_dialog(self):
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text="GPU Mode Changed — Reboot Required",
+        )
+        dialog.set_markup("<b>GPU Mode Changed</b>\n\nA reboot is required for the changes to take effect.\nReboot now?")
+        dialog.connect("response", self._on_reboot_response)
+        dialog.present()
+
+    def _on_reboot_response(self, dialog, response):
+        dialog.close()
+        if response == Gtk.ResponseType.YES:
+            import subprocess
+            subprocess.Popen("reboot", shell=True)
 
 
 class App(Gtk.Application):
-
     def __init__(self):
         super().__init__()
 
     def do_activate(self):
-        win = Dashboard(self)
+        win = MainWindow(self)
         win.present()
 
 
