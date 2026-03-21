@@ -1,12 +1,25 @@
+"""
+LOQ Control Center — GTK4 Main Window
+
+All hardware interactions go through the AppController.
+No direct imports of core/gpu, core/power, etc.
+"""
+
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib
 
-from loq_control.core import monitor, thermals, hardware, gpu, power
-from loq_control.gui.graph_widget import PerformanceGraph
 from loq_control.services import daemon
+from loq_control.gui.controller import AppController
+from loq_control.gui.graph_widget import PerformanceGraph
 
+# Bootstrap all services (state manager, hardware service, event engine, auto GPU)
 daemon.start()
+
+# Build the controller the GUI will use
+_state = daemon.get_state()
+_hw = daemon.get_hw_service()
+controller = AppController(state=_state, hw=_hw)
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -14,8 +27,9 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app)
 
-        self.set_title("LOQ Control Center v0.4 — Vaibhav Sharma")
+        self.set_title("LOQ Control Center v0.5 — Vaibhav Sharma")
         self.set_default_size(1100, 650)
+        self.ctrl = controller
 
         root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         self.set_child(root)
@@ -48,14 +62,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self.temp = Gtk.Label()
         self.ssd = Gtk.Label()
         self.power_draw = Gtk.Label()
+        self.state_label = Gtk.Label()
 
         dash.append(self.cpu)
         dash.append(self.ram)
         dash.append(self.temp)
         dash.append(self.ssd)
         dash.append(self.power_draw)
+        dash.append(self.state_label)
 
-        graph = PerformanceGraph()
+        graph = PerformanceGraph(controller=self.ctrl)
         dash.append(graph)
 
         self.stack.add_named(dash, "dash")
@@ -93,30 +109,68 @@ class MainWindow(Gtk.ApplicationWindow):
         gpu_btn.connect("clicked", lambda x: self.stack.set_visible_child_name("gpu"))
         power_btn.connect("clicked", lambda x: self.stack.set_visible_child_name("power"))
 
-        # GPU actions — thread safe with reboot callback
-        igpu.connect("clicked", lambda x: gpu.igpu(self.ask_reboot))
-        hybrid.connect("clicked", lambda x: gpu.hybrid(self.ask_reboot))
-        nvidia.connect("clicked", lambda x: gpu.nvidia(self.ask_reboot))
+        # GPU actions — go through controller (thread-safe)
+        igpu.connect("clicked", lambda x: self._gpu_switch("integrated"))
+        hybrid.connect("clicked", lambda x: self._gpu_switch("hybrid"))
+        nvidia.connect("clicked", lambda x: self._gpu_switch("nvidia"))
 
-        # Power actions
-        saver.connect("clicked", lambda x: power.battery())
-        balanced.connect("clicked", lambda x: power.balanced())
-        perf.connect("clicked", lambda x: power.performance())
+        # Power actions — go through controller
+        saver.connect("clicked", lambda x: self._power_switch("power-saver"))
+        balanced.connect("clicked", lambda x: self._power_switch("balanced"))
+        perf.connect("clicked", lambda x: self._power_switch("performance"))
 
         self.stack.set_visible_child_name("dash")
 
         GLib.timeout_add(2000, self.update_stats)
 
+    # ------------------------------------------------------------------
+    # Hardware actions (via controller)
+    # ------------------------------------------------------------------
+
+    def _gpu_switch(self, mode: str):
+        """Run GPU switch in a thread, then handle result on main thread."""
+        import threading
+
+        def _do():
+            result = self.ctrl.switch_gpu(mode)
+            if result.success and result.needs_reboot:
+                GLib.idle_add(self._show_reboot_dialog)
+            elif not result.success:
+                GLib.idle_add(self._show_error, result.message)
+
+        threading.Thread(target=_do, daemon=True).start()
+
+    def _power_switch(self, profile: str):
+        import threading
+
+        def _do():
+            result = self.ctrl.set_power_profile(profile)
+            if not result.success:
+                GLib.idle_add(self._show_error, result.message)
+
+        threading.Thread(target=_do, daemon=True).start()
+
+    # ------------------------------------------------------------------
+    # Stats update
+    # ------------------------------------------------------------------
+
     def update_stats(self):
-        self.cpu.set_text(f"CPU Usage: {monitor.cpu_usage()} %")
-        self.ram.set_text(f"RAM Usage: {monitor.ram_usage()} %")
-        self.temp.set_text(f"CPU Temp: {thermals.cpu_temp()} °C")
-        self.ssd.set_text(f"SSD Temp: {hardware.ssd_temp()} °C")
-        self.power_draw.set_text(f"Battery Draw: {hardware.battery_power()} W")
+        self.cpu.set_text(f"CPU Usage: {self.ctrl.cpu_usage()} %")
+        self.ram.set_text(f"RAM Usage: {self.ctrl.ram_usage()} %")
+        self.temp.set_text(f"CPU Temp: {self.ctrl.cpu_temp()} °C")
+        self.ssd.set_text(f"SSD Temp: {self.ctrl.ssd_temp()} °C")
+        self.power_draw.set_text(f"Battery Draw: {self.ctrl.battery_power()} W")
+
+        state = self.ctrl.get_state()
+        self.state_label.set_text(
+            f"GPU: {state['gpu_mode']}  |  Power: {state['power_profile']}  "
+            f"|  Fan: {state['fan_mode']}  |  AC: {'Yes' if state['charger_connected'] else 'No'}"
+        )
         return True
 
-    def ask_reboot(self):
-        GLib.idle_add(self._show_reboot_dialog)
+    # ------------------------------------------------------------------
+    # Dialogs
+    # ------------------------------------------------------------------
 
     def _show_reboot_dialog(self):
         dialog = Gtk.MessageDialog(
@@ -126,7 +180,10 @@ class MainWindow(Gtk.ApplicationWindow):
             buttons=Gtk.ButtonsType.YES_NO,
             text="GPU Mode Changed — Reboot Required",
         )
-        dialog.set_markup("<b>GPU Mode Changed</b>\n\nA reboot is required for the changes to take effect.\nReboot now?")
+        dialog.set_markup(
+            "<b>GPU Mode Changed</b>\n\n"
+            "A reboot is required for the changes to take effect.\nReboot now?"
+        )
         dialog.connect("response", self._on_reboot_response)
         dialog.present()
 
@@ -135,6 +192,18 @@ class MainWindow(Gtk.ApplicationWindow):
         if response == Gtk.ResponseType.YES:
             import subprocess
             subprocess.Popen("reboot", shell=True)
+
+    def _show_error(self, message: str):
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text="Operation Failed",
+        )
+        dialog.set_markup(f"<b>Error</b>\n\n{message}")
+        dialog.connect("response", lambda d, r: d.close())
+        dialog.present()
 
 
 class App(Gtk.Application):

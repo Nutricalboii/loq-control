@@ -1,0 +1,13 @@
+[Unit]
+Description=LOQ Control Center — GTK4 GUI
+After=loq-control-daemon.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m loq_control.gui.main
+Restart=on-failure
+RestartSec=3
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=graphical-session.target

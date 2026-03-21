@@ -1,82 +1,43 @@
-import gi
-gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk, Gio
-import subprocess
+#!/usr/bin/env python3
+"""
+LOQ Control CLI Wrappper
 
-def run(cmd):
-    subprocess.Popen(cmd, shell=True)
+Usage:
+  loq-control.py --probe   : Run hardware capability discovery engine and print JSON
+  loq-control.py           : Launch the GTK4 GUI
+"""
 
-class ControlWindow(Gtk.ApplicationWindow):
-    def __init__(self, app):
-        super().__init__(application=app)
-        self.set_title("LOQ Control Center")
-        self.set_default_size(420, 500)
+import sys
+import json
+from loq_control.core.capability_probe import CapabilityProbe
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        box.set_margin_top(20)
-        box.set_margin_bottom(20)
-        box.set_margin_start(20)
-        box.set_margin_end(20)
+def run_probe():
+    print("LOQ Control Hardware Discovery Engine")
+    print("-------------------------------------")
+    print("Scanning hardware capabilities... (bypassing cache)")
+    
+    probe = CapabilityProbe.get()
+    caps = probe.probe_all()  # Force execution
+    
+    # Remove large timestamp for cleaner output
+    caps_out = dict(caps)
+    if "_timestamp" in caps_out:
+        del caps_out["_timestamp"]
+        
+    print("\n" + json.dumps(caps_out, indent=4))
+    print("\nCapabilities saved to ~/.config/loq-control/capabilities.json")
+    sys.exit(0)
 
-        # GPU Buttons
-        igpu = Gtk.Button(label="iGPU Only")
-        igpu.connect("clicked", self.igpu_mode)
-        box.append(igpu)
+def main():
+    if "--probe" in sys.argv:
+        run_probe()
+    else:
+        # Launch GUI
+        import asyncio
+        from loq_control.gui.main import main as start_gui
+        
+        # Start the GUI
+        sys.exit(start_gui())
 
-        hybrid = Gtk.Button(label="Hybrid Mode")
-        hybrid.connect("clicked", self.hybrid_mode)
-        box.append(hybrid)
-
-        nvidia = Gtk.Button(label="NVIDIA Only")
-        nvidia.connect("clicked", self.nvidia_mode)
-        box.append(nvidia)
-
-        # Power Profiles
-        saver = Gtk.Button(label="Battery Saver")
-        saver.connect("clicked", self.battery_mode)
-        box.append(saver)
-
-        perf = Gtk.Button(label="Performance Mode")
-        perf.connect("clicked", self.performance_mode)
-        box.append(perf)
-
-        self.set_child(box)
-
-    def igpu_mode(self, btn):
-        run("sudo prime-select intel")
-        self.msg("iGPU mode applied. Reboot recommended.")
-
-    def hybrid_mode(self, btn):
-        run("sudo prime-select on-demand")
-        self.msg("Hybrid mode applied.")
-
-    def nvidia_mode(self, btn):
-        run("sudo prime-select nvidia")
-        self.msg("NVIDIA mode applied. Reboot required.")
-
-    def battery_mode(self, btn):
-        run("powerprofilesctl set power-saver")
-        self.msg("Battery saver enabled.")
-
-    def performance_mode(self, btn):
-        run("powerprofilesctl set performance")
-        self.msg("Performance mode enabled.")
-
-    def msg(self, text):
-        dialog = Gtk.MessageDialog(transient_for=self,
-                                   modal=True,
-                                   text=text)
-        dialog.add_button("OK", Gtk.ResponseType.OK)
-        dialog.connect("response", lambda d, r: d.destroy())
-        dialog.show()
-
-class App(Gtk.Application):
-    def __init__(self):
-        super().__init__(application_id="loq.control.center")
-
-    def do_activate(self):
-        win = ControlWindow(self)
-        win.present()
-
-app = App()
-app.run(None)
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,4 @@
-# core package exports (SAFE — no circular imports)
+# core package exports
 
 from . import gpu
 from . import hardware
@@ -9,3 +9,9 @@ from . import platform
 from . import presets
 from . import battery
 from . import fan
+from . import state_manager
+from . import logger
+from . import config
+from . import capability_probe
+from . import gpu_runtime_manager
+from . import cpu_power_manager

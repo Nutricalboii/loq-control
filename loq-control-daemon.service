@@ -1,0 +1,13 @@
+[Unit]
+Description=LOQ Control Daemon — hardware state, event engine, auto GPU
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m loq_control.services.daemon
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
