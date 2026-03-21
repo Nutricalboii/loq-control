@@ -4,6 +4,9 @@ from pathlib import Path
 
 from loq_control.core.state_manager import StateManager
 from loq_control.core.capability_probe import CapabilityProbe
+from loq_control.core.logger import LoqLogger
+
+log = LoqLogger.get()
 
 
 class CPUPowerManager:
@@ -137,6 +140,7 @@ class CPUPowerManager:
         - balanced
         - performance
         """
+        log.cpu("info", f"Applying profile {profile} (vendor: {self.cpu_vendor})")
 
         if self.cpu_vendor == "intel":
             if profile == "quiet":

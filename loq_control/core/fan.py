@@ -47,3 +47,22 @@ def custom() -> bool:
         shell=True, capture_output=True,
     )
     return result.returncode == 0
+
+
+def set_manual_pwm(fan_id: int, percent: int) -> bool:
+    """
+    Abstractions for fine-grained PWM writes.
+    Translates percentage (0-100) to actual EC register logic or hwmon standard.
+    For Phase 3 framework building, this handles formatting the abstract payload.
+    """
+    from loq_control.core.logger import LoqLogger
+    log = LoqLogger.get()
+
+    percent = max(0, min(100, percent))
+    pwm_val = int(255 * (percent / 100))
+    
+    # Safe stub: logs the target write dynamically prior to exact byte arrays
+    # TODO: In future phases this invokes `ec_manager` ACPI byte streams.
+    log.firmware("info", f"EC PWM STUB WRITE: Fan {fan_id} -> {percent}% ({pwm_val}/255)")
+    return True
+

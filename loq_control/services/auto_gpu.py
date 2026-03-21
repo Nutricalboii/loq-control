@@ -10,10 +10,10 @@ import threading
 from typing import Optional
 
 from loq_control.core.state_manager import StateManager
-from loq_control.core.logger import get_logger
+from loq_control.core.logger import LoqLogger
 from loq_control.core.gpu_runtime_manager import GPURuntimeManager
 
-log = get_logger("loq-control.auto-gpu")
+log = LoqLogger.get()
 
 
 class AutoGPU:
@@ -52,13 +52,13 @@ class AutoGPU:
             target=self._run, daemon=True, name="auto-gpu"
         )
         self._thread.start()
-        log.info("AutoGPU started")
+        log.daemon("info", "AutoGPU started")
 
     def stop(self):
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=3)
-        log.info("AutoGPU stopped")
+        log.daemon("info", "AutoGPU stopped")
 
     def set_hw_service(self, hw_service):
         self._hw = hw_service
@@ -72,7 +72,7 @@ class AutoGPU:
         if key != "charger_connected" or source == "force":
             return
         if not self._state.can_daemon_act():
-            log.info("AutoGPU: charger changed but manual override active, ignoring")
+            log.daemon("info", "AutoGPU: charger changed but manual override active, ignoring")
             return
         if self._hw is None:
             return
@@ -80,12 +80,12 @@ class AutoGPU:
         mgr = GPURuntimeManager.get()
 
         if new_val:  # AC plugged
-            log.info("AutoGPU: AC connected → switching to hybrid/nvidia")
+            log.daemon("info", "AutoGPU: AC connected → switching to hybrid/nvidia")
             if not mgr.resume_gpu(source="daemon"):
                 # Fallback
                 self._hw.switch_gpu("hybrid", source="daemon")
         else:  # Battery
-            log.info("AutoGPU: AC disconnected → switching to integrated")
+            log.daemon("info", "AutoGPU: AC disconnected → switching to integrated")
             if not mgr.suspend_gpu(source="daemon"):
                 # Fallback
                 self._hw.switch_gpu("integrated", source="daemon")

@@ -9,6 +9,9 @@ import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
+from loq_control.core.logger import LoqLogger
+
+log = LoqLogger.get()
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +45,8 @@ class StateManager:
         "charger_connected": {True, False},
         "conservation_mode": {True, False},
         "manual_override": {True, False},
+        "platform_profile": {"quiet", "balanced", "performance"},
+        "smart_fan_active": {True, False},
     }
 
     # ------------------------------------------------------------------
@@ -74,6 +79,8 @@ class StateManager:
             "charger_connected": True,
             "conservation_mode": False,
             "manual_override": False,
+            "platform_profile": "balanced",
+            "smart_fan_active": False,
         }
 
         self._last_transition_ts: float = 0.0
@@ -125,14 +132,25 @@ class StateManager:
         Request a state change.
 
         Checks:
-          1. Key is valid
-          2. Value is valid for that key
-          3. Not currently in a transition
-          4. Debounce window has passed
+          1. Safety Supervisor approval (Rate limits, Thermal failsafe)
+          2. Key is valid
+          3. Value is valid for that key
+          4. Not currently in a transition
+          5. Debounce window has passed
 
         Returns TransitionResult indicating success/failure.
         """
+        # 0. Safety Gatekeeper
+        from loq_control.core.safety_supervisor import SafetySupervisor
+        supervisor = SafetySupervisor.get()
+        if supervisor and not supervisor.check_transition(key, value, source):
+            return TransitionResult(
+                success=False,
+                message=f"Safety Check Failed — request from '{source}' blocked",
+            )
+
         with self._lock:
+
             # Validate key
             if key not in self._state:
                 return TransitionResult(
@@ -178,6 +196,7 @@ class StateManager:
             # Apply
             self._state[key] = value
             self._last_transition_ts = time.monotonic()
+            log.daemon("debug", f"State transition accepted: {key} -> {value} by {source}")
 
         # Notify outside lock to avoid deadlocks
         self._notify_subscribers(key, previous, value, source)
@@ -274,6 +293,8 @@ class StateManager:
             subs = list(self._subscribers)
         for cb in subs:
             try:
+                log.daemon("info", f"Notifying '{key}' change: {old_value} -> {new_value} (from {source})")
                 cb(key, old_value, new_value, source)
-            except Exception:
+            except Exception as e:
+                log.daemon("error", f"State observer error: {e}")
                 pass  # subscriber errors must never crash the manager

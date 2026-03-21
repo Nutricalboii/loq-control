@@ -96,6 +96,23 @@ class AppController:
     def gpu_usage(self) -> float:
         return monitor.gpu_usage()
 
+    def cpu_wattage(self) -> float:
+        return monitor.cpu_wattage()
+
+    def get_current_policy(self) -> str:
+        from loq_control.core.policy_engine import PolicyEngine
+        # PolicyEngine expects StateManager which is self._state
+        engine = PolicyEngine.init(self._state)
+        return engine.get_current_policy().value
+
+    def get_safety_status(self) -> str:
+        from loq_control.core.safety_supervisor import SafetySupervisor
+        sup = SafetySupervisor.get()
+        return sup.get_status() if sup else "ok"
+
+
+
+
     # ------------------------------------------------------------------
     # Observer
     # ------------------------------------------------------------------

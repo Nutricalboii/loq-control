@@ -5,19 +5,21 @@ EventEngine, and AutoGPU in the correct order.
 
 from loq_control.core.state_manager import StateManager
 from loq_control.core.config import Config
-from loq_control.core.logger import get_logger
+from loq_control.core.logger import LoqLogger
 from loq_control.core.capability_probe import CapabilityProbe
 from loq_control.services.hardware_service import HardwareService
 from loq_control.services.event_engine import EventEngine
 from loq_control.services.auto_gpu import AutoGPU
+from loq_control.core.fnq_sync import FnQSync
 
-log = get_logger("loq-control.daemon")
+log = LoqLogger.get()
 
 # Module-level singletons (lazy init)
 _state: StateManager | None = None
 _hw: HardwareService | None = None
 _events: EventEngine | None = None
 _auto_gpu: AutoGPU | None = None
+_smart_fan = None
 
 
 def start():
@@ -34,17 +36,23 @@ def start():
     ec_caps = ECDetection.get().get_capabilities()
     caps.update(ec_caps)
     
-    log.info("Capabilities loaded: %s", caps)
+    log.daemon("info", "Capabilities loaded: %s", caps)
 
     # 1. Start Thermal Telemetry
     from loq_control.core.thermal_manager import ThermalManager
     ThermalManager.get().start()
-    log.info("Thermal telemetry started")
+    log.daemon("info", "Thermal telemetry started")
 
     # 1. State manager
     _state = StateManager(debounce_ms=config.get("debounce_ms", 500))
 
+    # 1.5 Safety Supervisor (Watcher of all)
+    from loq_control.core.safety_supervisor import SafetySupervisor
+    _safety = SafetySupervisor.get(state_manager=_state)
+    _safety.start()
+
     # 2. Hardware service — syncs real hardware into state
+
     _hw = HardwareService(state=_state)
     _hw.sync_state_from_hardware()
 
@@ -55,21 +63,38 @@ def start():
     )
     _events.start()
 
-    # 4. Auto GPU — reacts to charger changes
+    # 4. Fn+Q Synchronization API
+    _fnq = FnQSync.init(_state, _hw)
+
+    # 5. Auto GPU — reacts to charger changes
     _auto_gpu = AutoGPU(state=_state, hw_service=_hw)
     _auto_gpu.start()
 
-    log.info("Daemon started — all services running")
+    # 6. Smart Fan Engine
+    global _smart_fan
+    from loq_control.core.smart_fan import SmartFanEngine
+    _smart_fan = SmartFanEngine.init(_state)
+
+    # 7. Policy Engine (The Brain)
+    from loq_control.core.policy_engine import PolicyEngine
+    _policy = PolicyEngine.init(_state)
+    _policy.start()
+
+    log.daemon("info", "Daemon started — all services running")
 
 
 def stop():
     """Gracefully shut down all services."""
-    global _events, _auto_gpu
+    global _events, _auto_gpu, _smart_fan
+    # Policy engine is a singleton and daemon thread, no explicit stop needed but good practice
+    if _smart_fan:
+        _smart_fan.stop()
     if _auto_gpu:
         _auto_gpu.stop()
     if _events:
         _events.stop()
-    log.info("Daemon stopped")
+    log.daemon("info", "Daemon stopped")
+
 
 
 def get_state() -> StateManager | None:

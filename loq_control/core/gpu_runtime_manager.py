@@ -6,6 +6,9 @@ from pathlib import Path
 
 from loq_control.core.state_manager import StateManager
 from loq_control.core.capability_probe import CapabilityProbe
+from loq_control.core.logger import LoqLogger
+
+log = LoqLogger.get()
 
 
 class GPURuntimeManager:
@@ -96,16 +99,21 @@ class GPURuntimeManager:
     # --------------------------------------------------
 
     def suspend_gpu(self, source="daemon"):
+        log.gpu("info", "Attempting runtime suspend")
         if not self.capabilities["gpu"].get("pci_runtime_pm"):
+            log.gpu("warn", "Suspend abort: PCI PM capability missing")
             return False
 
         if not self.pci_path:
+            log.gpu("warn", "Suspend abort: No NVIDIA PCI path discovered")
             return False
 
         if self.gpu_in_use():
+            log.gpu("warn", "GPU busy, abort suspend")
             return False
 
         if not self.state_manager.lock_transition(source):
+            log.gpu("warn", "Suspend abort: State lock failed")
             return False
 
         try:
@@ -127,10 +135,12 @@ class GPURuntimeManager:
 
             self.gpu_state = self.STATE_SUSPENDED
             self.state_manager.force_set("gpu_mode", "integrated")
+            log.gpu("info", "Suspend transaction successful")
             return True
 
-        except Exception:
+        except Exception as e:
             self.gpu_state = self.STATE_FAILED
+            log.gpu("error", f"Suspend transaction failed: {e}")
             return False
 
         finally:
@@ -141,10 +151,13 @@ class GPURuntimeManager:
     # --------------------------------------------------
 
     def resume_gpu(self, source="daemon"):
+        log.gpu("info", "Attempting runtime resume")
         if not self.pci_path:
+            log.gpu("warn", "Resume abort: No NVIDIA PCI path discovered")
             return False
 
         if not self.state_manager.lock_transition(source):
+            log.gpu("warn", "Resume abort: State lock failed")
             return False
 
         try:
@@ -170,14 +183,17 @@ class GPURuntimeManager:
 
             if test.returncode != 0:
                 self.gpu_state = self.STATE_FAILED
+                log.gpu("error", "Resume transaction failed: nvidia-smi failed")
                 return False
 
             self.gpu_state = self.STATE_ACTIVE
             self.state_manager.force_set("gpu_mode", "nvidia")
+            log.gpu("info", "Resume transaction successful")
             return True
 
-        except Exception:
+        except Exception as e:
             self.gpu_state = self.STATE_FAILED
+            log.gpu("error", f"Resume transaction failed: {e}")
             return False
 
         finally:

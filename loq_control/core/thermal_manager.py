@@ -3,6 +3,9 @@ import time
 from pathlib import Path
 
 from loq_control.core.capability_probe import CapabilityProbe
+from loq_control.core.logger import LoqLogger
+
+log = LoqLogger.get()
 
 
 class ThermalManager:
@@ -138,6 +141,8 @@ class ThermalManager:
                 pass
 
         self.telemetry["temps"] = temps
+        if temps:
+            log.thermal("debug", f"Temp map {temps}")
 
     def _read_fans(self):
         fan_data = []
