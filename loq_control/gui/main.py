@@ -150,8 +150,8 @@ class MainWindow(Gtk.ApplicationWindow):
             message_type=Gtk.MessageType.QUESTION,
             buttons=Gtk.ButtonsType.NONE,
             text="Welcome to LOQ Control Center",
+            secondary_text="Please choose your preferred UI theme to get started:",
         )
-        dialog.set_secondary_text("Please choose your preferred UI theme to get started:")
         
         dialog.add_button("Light Mode", Gtk.ResponseType.ACCEPT)
         dialog.add_button("Dark Mode", Gtk.ResponseType.YES)
