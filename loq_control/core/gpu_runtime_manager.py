@@ -7,6 +7,7 @@ from pathlib import Path
 from loq_control.core.state_manager import StateManager
 from loq_control.core.capability_probe import CapabilityProbe
 from loq_control.core.logger import LoqLogger
+from loq_control.core import gpu
 
 log = LoqLogger.get()
 
@@ -119,13 +120,12 @@ class GPURuntimeManager:
         try:
             self.gpu_state = self.STATE_SUSPENDING
 
-            subprocess.run(
-                ["prime-select", "intel"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            # Use centralized GPU command with pkexec
+            if not gpu.set_integrated():
+                log.gpu("error", "Runtime suspend: prime-select failed")
+                return False
 
-            time.sleep(3)
+            time.sleep(1) # Reduced from 3s
 
             power_control = Path(self.pci_path) / "power" / "control"
             if power_control.exists():
@@ -167,13 +167,12 @@ class GPURuntimeManager:
             if power_control.exists():
                 power_control.write_text("on")
 
-            subprocess.run(
-                ["prime-select", "nvidia"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            # Use centralized GPU command with pkexec
+            if not gpu.set_nvidia():
+                log.gpu("error", "Runtime resume: prime-select failed")
+                return False
 
-            time.sleep(3)
+            time.sleep(1) # Reduced from 3s
 
             test = subprocess.run(
                 ["nvidia-smi"],
