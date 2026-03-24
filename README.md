@@ -1,58 +1,61 @@
-Open-source hardware control suite for Lenovo LOQ laptops running Linux.
+# 🛰️ LOQ Control Center v1.2.0
 
-This project provides a unified control center for GPU modes, performance profiles,
-thermal monitoring and system automation — similar to Lenovo Vantage on Windows.
+> **A Secure, High-Performance Persistence Layer for Lenovo LOQ Hardware on Linux.**
 
-Why this project exists
+---
 
-Modern performance laptops expose powerful hardware controls such as hybrid GPUs,
-platform performance modes and intelligent battery behaviour.
+### 🔱 **The Unharming Blueprint**
+LOQ Control Center is designed by **Vaibhav Pandit** as a non-destructive, "Safe Elevation" blueprint for hardware management. It replaces high-risk terminal commands with a secure, Polkit-gated enterprise architecture that prioritizes system longevity and user safety.
 
-On Linux these controls exist — but they are scattered across terminal utilities.
+---
 
-LOQ Control Center brings them together into a single clean interface.
+### ⚡ **Core Capabilities**
 
-Current Features
+*   **🛡️ Multi-Point Security**: Zero-sudo GUI architecture using `pkexec` for granular privilege escalation.
+*   **🧠 Thermal Intelligence**: An adaptive "Brain" (Policy Engine) that automatically escalates cooling before heat-soak occurs.
+*   **🎨 Dynamic Aesthetics**: A modern GTK4 interface with persistent Dark/Light/System theme synchronization.
+*   **📊 Native Telemetry**: High-precision, real-time Cairo-rendered performance graphs for CPU, GPU, and Power Draw.
+*   **🔋 Battery Intelligence**: Advanced MUX switching logic (Hybrid/Integrated/NVIDIA) and conservation mode persistence.
 
-GPU Control
-• Integrated GPU mode
-• Hybrid (on-demand) mode
-• Dedicated NVIDIA mode
-• Automatic GPU switching based on charger state
+---
 
-Performance Modes
-• Power Saver
-• Balanced
-• Performance
-• Platform ACPI profile integration
+### 🛠️ **Terminal Installation (The Fast Way)**
 
-Monitoring
-• CPU usage
-• RAM usage
-• Temperature telemetry
-• Battery power draw estimation
-• Live performance graph
+Experience the blueprint in seconds. Copy and paste these commands into your terminal:
 
-Architecture
+```bash
+# 1. Clone the Blueprint
+git clone https://github.com/nutricalboii/loq-control.git && cd loq-control
 
-The project follows a modular structure:
+# 2. Install Dependencies (Linux/Ubuntu/Debian)
+sudo apt update && sudo apt install -y python3-gi python3-gi-cairo gir1.2-gtk-4.0 python3-psutil
 
-core → hardware control logic  
-services → background automation  
-gui → user interface  
+# 3. Deploy the Environment
+pip3 install -e .
 
-This separation allows future deep hardware features without breaking UI.
+# 4. Launch the Dashboard
+loq-gui
+```
 
-Roadmap
+---
 
-• Fan curve control  
-• GPU power gating  
-• CPU power limit tuning  
-• RGB keyboard control  
-• system tray daemon 
-• packaging (.deb / Flatpak)
+### 🧬 **Architecture of Persistence**
 
-Author
+LOQ Control is separated into three distinct high-integrity layers:
+1.  **`loq-daemon`**: The low-level background observer (Persistence).
+2.  **`loq-gui`**: The high-fidelity GTK4 Dashboard (Control).
+3.  **`loq-control`**: The direct-access CLI for hardware probing (Discovery).
 
-Vaibhav Sharma 
-GitHub: nutricalboii
+---
+
+### 🏷️ **Developer & Credits**
+
+**Architected & Developed by:**  
+👤 **Vaibhav Pandit** (nutricalboii)  
+
+*“This project is more than a tool—it is a secure blueprint for how hardware and software should interact on Linux.”*
+
+---
+
+*Verified on Lenovo LOQ 2023/2024 Platforms.*  
+*Status: Production Ready | v1.2.0*
