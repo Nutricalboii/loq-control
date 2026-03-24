@@ -121,6 +121,13 @@ class StateManager:
         with self._lock:
             return self._last_transition_ts
 
+    def report_failure(self, key: str, value: Any, error: str):
+        """Notify the Safety Supervisor of a hardware write failure."""
+        from loq_control.core.safety_supervisor import SafetySupervisor
+        supervisor = SafetySupervisor.get()
+        if supervisor:
+            supervisor.handle_failure(key, value, error)
+
     # ------------------------------------------------------------------
     # Transitions (guarded)
     # ------------------------------------------------------------------

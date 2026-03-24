@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: loq-control
+Version: 0.8.0
+Summary: Advanced Hardware Control for Lenovo LOQ Laptops
+Author: Vaibhav Pandit
+Requires-Python: >=3.8
+License-File: LICENSE

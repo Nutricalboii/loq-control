@@ -70,12 +70,18 @@ def start():
     _auto_gpu = AutoGPU(state=_state, hw_service=_hw)
     _auto_gpu.start()
 
-    # 6. Smart Fan Engine
-    global _smart_fan
+    # 5. Smart Fan Engine
     from loq_control.core.smart_fan import SmartFanEngine
-    _smart_fan = SmartFanEngine.init(_state)
+    _fan_engine = SmartFanEngine.init(_state)
+    _fan_engine.start()
 
-    # 7. Policy Engine (The Brain)
+    # 5.5 Telemetry Recorder (Priority 2)
+    from loq_control.core.telemetry_recorder import TelemetryRecorder
+    _recorder = TelemetryRecorder.get()
+    _recorder.start()
+
+    # 6. Global Policy Engine (The Brain)
+
     from loq_control.core.policy_engine import PolicyEngine
     _policy = PolicyEngine.init(_state)
     _policy.start()
