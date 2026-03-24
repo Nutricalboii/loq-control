@@ -123,8 +123,8 @@ class MainWindow(Gtk.ApplicationWindow):
             message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.OK,
             text="Hardware Action Failed",
+            secondary_text=message,
         )
-        dialog.format_secondary_text(message)
         dialog.connect("response", lambda d, r: d.close())
         dialog.present()
 
