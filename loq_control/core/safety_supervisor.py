@@ -33,6 +33,9 @@ class SafetySupervisor:
         # Policy Oscillation
         self._policy_history: List[str] = []
         
+        # Failure Tracking (Self-Healing)
+        self._failure_counts: Dict[str, int] = {}
+        
         self._running = False
         self._thread = None
 
@@ -80,6 +83,16 @@ class SafetySupervisor:
 
         return True
 
+    def handle_failure(self, key: str, value: Any, error: str):
+        """Track hardware failures and trigger Safe Mode if persistent."""
+        count = self._failure_counts.get(key, 0) + 1
+        self._failure_counts[key] = count
+        
+        log.daemon("warning", f"Safety: Detected failure {count}/3 for {key}={value}: {error}")
+        
+        if count >= 3:
+            self._enter_safe_mode(f"Persistent Hardware Failure: {key} failed 3 times")
+
     def _watchdog_loop(self):
         while self._running:
             time.sleep(2.0)
@@ -113,8 +126,13 @@ class SafetySupervisor:
         self._state.request_transition("smart_fan_active", False, source="emergency")
         
     def _check_daemon_health(self):
-        # heartbeat check could go here
-        pass
+        # Notify systemd if possible (sd_notify watchdog)
+        # This keeps the daemon from being killed by systemd if it heartbeats
+        try:
+            from systemd import daemon
+            daemon.notify("WATCHDOG=1")
+        except (ImportError, Exception):
+            pass # systemd package not installed or not running under systemd
 
     def get_status(self):
         return self._status

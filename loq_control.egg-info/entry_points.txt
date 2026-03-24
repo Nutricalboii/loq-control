@@ -1,0 +1,5 @@
+[console_scripts]
+loq-control = loq_control.cli:main
+loq-daemon = loq_control.services.daemon:main
+loq-gui = loq_control.gui.main:main
+loq-report = loq_control.tools.stability_report:main

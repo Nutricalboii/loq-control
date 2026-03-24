@@ -1,13 +1,17 @@
 [Unit]
-Description=LOQ Control Center — GTK4 GUI
-After=loq-control-daemon.service
+Description=LOQ Control Daemon — Advanced Hardware Orchestration
+After=multi-user.target
+StartLimitIntervalSec=0
 
 [Service]
-Type=simple
-ExecStart=/usr/bin/python3 -m loq_control.gui.main
-Restart=on-failure
-RestartSec=3
-Environment=DISPLAY=:0
+Type=notify
+ExecStart=/usr/bin/python3 -m loq_control.services.daemon
+Restart=always
+RestartSec=5
+# Enable the hardware watchdog
+WatchdogSec=10
+# Allow the daemon to notify systemd it's alive
+NotifyAccess=all
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=multi-user.target

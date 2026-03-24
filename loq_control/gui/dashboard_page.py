@@ -1,7 +1,7 @@
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
-from loq_control.gui.graph_widget import PerformanceGraph
+from loq_control.gui.widgets.native_graph import NativePerformanceGraph as PerformanceGraph
 from loq_control.gui.widgets.status_badge import StatusBadge
 
 class DashboardPage(Gtk.Box):

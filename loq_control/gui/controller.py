@@ -99,6 +99,15 @@ class AppController:
     def cpu_wattage(self) -> float:
         return monitor.cpu_wattage()
 
+    def gpu_temp(self):
+        return monitor.gpu_temp()
+
+    def gpu_clock(self):
+        return monitor.gpu_clock()
+
+    def battery_status(self):
+        return monitor.battery_status()
+
     def get_current_policy(self) -> str:
         from loq_control.core.policy_engine import PolicyEngine
         # PolicyEngine expects StateManager which is self._state

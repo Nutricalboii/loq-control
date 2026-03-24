@@ -149,6 +149,7 @@ class HardwareService:
 
             if not ok:
                 log.hardware("error", "[%s] GPU switch to '%s' FAILED", source, mode)
+                self._state.report_failure("gpu_mode", mode, "prime-select failed")
                 return HWResult(False, f"prime-select failed for '{mode}'")
 
             # 4. Update state
@@ -157,6 +158,9 @@ class HardwareService:
 
             return HWResult(True, f"GPU → {mode}", needs_reboot=True)
 
+        except Exception as e:
+            log.hardware("error", "[%s] GPU switch CRASHED: %s", source, e)
+            return HWResult(False, f"Internal error during GPU switch: {e}")
         finally:
             # 5. Unlock
             self._state.unlock_transition()
@@ -187,6 +191,7 @@ class HardwareService:
 
             if not ok:
                 log.hardware("error", "[%s] Power profile '%s' FAILED", source, profile)
+                self._state.report_failure("power_profile", profile, "powerprofilesctl failed")
                 return HWResult(False, f"powerprofilesctl failed for '{profile}'")
 
             self._state.force_set("power_profile", profile)
@@ -194,6 +199,9 @@ class HardwareService:
 
             return HWResult(True, f"Power → {profile}")
 
+        except Exception as e:
+            log.hardware("error", "[%s] Power profile CRASHED: %s", source, e)
+            return HWResult(False, f"Internal error during power switch: {e}")
         finally:
             self._state.unlock_transition()
 
@@ -214,6 +222,7 @@ class HardwareService:
 
             if not ok:
                 log.hardware("error", "[%s] Fan mode '%s' FAILED", source, mode)
+                self._state.report_failure("fan_mode", mode, "acpi write failed")
                 return HWResult(False, f"Platform profile write failed for '{mode}'")
 
             self._state.force_set("fan_mode", mode)
@@ -221,6 +230,9 @@ class HardwareService:
 
             return HWResult(True, f"Fan → {mode}")
 
+        except Exception as e:
+            log.hardware("error", "[%s] Fan mode CRASHED: %s", source, e)
+            return HWResult(False, f"Internal error during fan switch: {e}")
         finally:
             self._state.unlock_transition()
 
@@ -245,6 +257,9 @@ class HardwareService:
 
             return HWResult(True, f"Conservation → {enabled}")
 
+        except Exception as e:
+            log.hardware("error", "[%s] Conservation mode CRASHED: %s", source, e)
+            return HWResult(False, f"Internal error during conservation switch: {e}")
         finally:
             self._state.unlock_transition()
 
