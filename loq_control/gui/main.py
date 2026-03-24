@@ -15,6 +15,7 @@ from loq_control.gui.power_page import PowerPage
 from loq_control.gui.thermals_page import ThermalsPage
 from loq_control.gui.log_viewer_page import LogViewerPage
 from loq_control.gui.telemetry_page import TelemetryPage
+from loq_control.gui.settings import GuiSettings
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -25,9 +26,13 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_title("LOQ Control Center v0.9")
         self.set_default_size(1100, 700)
         self.ctrl = ctrl
+        self.settings = GuiSettings.get()
 
         # Load CSS
         self._load_css()
+
+        # Apply persistence theme
+        self._apply_theme(self.settings.get_val("theme"))
 
         root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.set_child(root)
@@ -50,6 +55,25 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_nav_button(sidebar, "Thermal Layout", "thermals")
         self._add_nav_button(sidebar, "Deep Analysis", "telemetry")
         self._add_nav_button(sidebar, "Live Logs", "logs")
+
+        # ================= THEME SWITCHER =================
+        sidebar.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+        theme_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        theme_box.set_margin_start(10)
+        theme_box.set_margin_end(10)
+        theme_box.set_margin_bottom(10)
+        sidebar.append(theme_box)
+
+        theme_lbl = Gtk.Label(label="UI Theme", halign=Gtk.Align.START)
+        theme_lbl.add_css_class("caption")
+        theme_box.append(theme_lbl)
+
+        theme_combo = Gtk.DropDown.new_from_strings(["System", "Dark", "Light"])
+        current_theme = self.settings.get_val("theme").capitalize()
+        theme_map = {"System": 0, "Dark": 1, "Light": 2}
+        theme_combo.set_selected(theme_map.get(current_theme, 0))
+        theme_combo.connect("notify::selected", self._on_theme_changed)
+        theme_box.append(theme_combo)
 
         # ================= STACK =================
         self.stack = Gtk.Stack()
@@ -98,6 +122,56 @@ class MainWindow(Gtk.ApplicationWindow):
         self.dash_page.update_stats()
         self.thermals_page.update_stats()
         return True
+
+    def _apply_theme(self, theme):
+        settings = Gtk.Settings.get_default()
+        if theme == "dark":
+            settings.set_property("gtk-application-prefer-dark-theme", True)
+        elif theme == "light":
+            settings.set_property("gtk-application-prefer-dark-theme", False)
+        else:
+            # System - reset to default
+            settings.reset_property("gtk-application-prefer-dark-theme")
+
+    def _on_theme_changed(self, combo, pspec):
+        idx = combo.get_selected()
+        theme = ["system", "dark", "light"][idx]
+        self.settings.set("theme", theme)
+        self._apply_theme(theme)
+
+    def check_first_run(self):
+        if self.settings.get_val("first_run"):
+            GLib.idle_add(self._show_first_run_dialog)
+
+    def _show_first_run_dialog(self):
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            modal=True,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.NONE,
+            text="Welcome to LOQ Control Center",
+        )
+        dialog.set_secondary_text("Please choose your preferred UI theme to get started:")
+        
+        dialog.add_button("Light Mode", Gtk.ResponseType.ACCEPT)
+        dialog.add_button("Dark Mode", Gtk.ResponseType.YES)
+        dialog.add_button("Use System Default", Gtk.ResponseType.CLOSE)
+
+        def on_response(d, response):
+            if response == Gtk.ResponseType.ACCEPT:
+                theme = "light"
+            elif response == Gtk.ResponseType.YES:
+                theme = "dark"
+            else:
+                theme = "system"
+            
+            self.settings.set("theme", theme)
+            self.settings.set("first_run", False)
+            self._apply_theme(theme)
+            d.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
 
     def _show_reboot_dialog(self):
         dialog = Gtk.MessageDialog(
@@ -164,6 +238,7 @@ def main():
     def on_activate(app):
         win = MainWindow(app, ctrl)
         win.present()
+        win.check_first_run()
 
     app.connect("activate", on_activate)
     app.run(None)

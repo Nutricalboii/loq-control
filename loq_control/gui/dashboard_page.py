@@ -88,7 +88,7 @@ class DashboardPage(Gtk.Box):
         
         import threading
         threading.Thread(target=_do, daemon=True).start()
-        return False
+        return True # Fix: Returning True tells GTK to keep the requested state
 
     def update_stats(self):
         self.cpu_usage[1].set_text(f"{self.ctrl.cpu_usage()} %")
