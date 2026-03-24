@@ -20,7 +20,7 @@ class GPUPage(Gtk.Box):
 
         # Metrics Card
         metrics_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
-        metrics_box.add_css_class("card")
+        metrics_box.add_css_class("industrial-card")
         self.append(metrics_box)
 
         self.usage_lbl = self._metric("Usage", "0%")
@@ -53,7 +53,7 @@ class GPUPage(Gtk.Box):
         self.append(Gtk.Label(label="Battery Intelligence", halign=Gtk.Align.START))
         
         self.bat_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        self.bat_card.add_css_class("card")
+        self.bat_card.add_css_class("industrial-card")
         self.append(self.bat_card)
         
         self.bat_status = Gtk.Label(label="Status: Calculating...", halign=Gtk.Align.START)

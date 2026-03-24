@@ -2,122 +2,97 @@ import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk
 from loq_control.gui.widgets.native_graph import NativePerformanceGraph as PerformanceGraph
+from loq_control.gui.widgets.hex_status import HexStatus
+from loq_control.gui.widgets.heat_bar import HeatBar
+from loq_control.gui.widgets.mode_badge import ModeBadge
 from loq_control.gui.widgets.status_badge import StatusBadge
 
 class DashboardPage(Gtk.Box):
     def __init__(self, controller):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        self.set_margin_top(24)
-        self.set_margin_bottom(24)
-        self.set_margin_start(24)
-        self.set_margin_end(24)
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        self.set_margin_all(24)
         self.ctrl = controller
 
-        # Header with status badges
-        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        self.append(header)
+        # ================= TOP SECTION: INDUSTRIAL COMMAND =================
+        top_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=30)
+        top_box.set_halign(Gtk.Align.CENTER)
+        self.append(top_box)
 
-        self.gpu_badge = StatusBadge("HYBRID", "green")
-        self.power_badge = StatusBadge("BALANCED", "blue")
-        self.fan_badge = StatusBadge("AUTO", "orange")
-        self.ac_badge = StatusBadge("AC", "grey")
-        self.policy_badge = StatusBadge("IDLE", "purple")
-        self.safety_badge = StatusBadge("SHIELD", "green")
+        # CPU Hex
+        self.cpu_hex = HexStatus("CPU LOAD", "#ff7a18")
+        top_box.append(self.cpu_hex)
 
+        # Center Mode Badge
+        self.main_mode = ModeBadge("PERFORMANCE", "badge-orange")
+        top_box.append(self.main_mode)
 
-        header.append(self.gpu_badge)
-        header.append(self.power_badge)
-        header.append(self.fan_badge)
-        header.append(self.ac_badge)
-        header.append(self.policy_badge)
-        header.append(self.safety_badge)
+        # GPU Hex
+        self.gpu_hex = HexStatus("GPU LOAD", "#00d4ff")
+        top_box.append(self.gpu_hex)
 
+        # ================= SECONDARY STATUS =================
+        status_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        status_row.set_halign(Gtk.Align.CENTER)
+        self.append(status_row)
 
+        self.gpu_status = StatusBadge("HYBRID", "badge-blue")
+        self.ac_status = StatusBadge("AC", "badge-grey")
+        self.safety_status = StatusBadge("SHIELD", "badge-green")
+        self.brain_status = StatusBadge("BRAIN: OFF", "badge-grey")
 
-        self.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+        status_row.append(self.gpu_status)
+        status_row.append(self.ac_status)
+        status_row.append(self.safety_status)
+        status_row.append(self.brain_status)
 
-        # Adaptive Toggle
-        adaptive_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        adaptive_box.set_margin_top(10)
-        self.append(adaptive_box)
-        
-        adaptive_box.append(Gtk.Label(label="<b>Adaptive Smart Fan Learning</b>", use_markup=True))
-        self.adaptive_switch = Gtk.Switch()
-        self.adaptive_switch.set_active(False)
-        self.adaptive_switch.connect("state-set", self._on_adaptive_toggled)
-        adaptive_box.append(self.adaptive_switch)
+        # ================= THERMAL MONITOR =================
+        thermal_card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=40)
+        thermal_card.add_css_class("industrial-card")
+        self.append(thermal_card)
 
-        # Metrics Grid
+        self.cpu_heat = HeatBar("CPU CORE", 100)
+        self.gpu_heat = HeatBar("GPU CHIP", 100)
+        thermal_card.append(self.cpu_heat)
+        thermal_card.append(self.gpu_heat)
 
-        grid = Gtk.Grid(column_spacing=24, row_spacing=24)
-        grid.set_margin_top(12)
-        self.append(grid)
+        # ================= TELEMETRY GRAPH =================
+        graph_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        graph_card.add_css_class("industrial-card")
+        graph_card.set_vexpand(True)
+        self.append(graph_card)
 
-        self.cpu_usage = self._create_metric_card("CPU Usage", "%")
-        self.ram_usage = self._create_metric_card("RAM Usage", "%")
-        self.cpu_temp = self._create_metric_card("Core Temp", "°C")
-        self.batt_draw = self._create_metric_card("Power Draw", "W")
-
-        grid.attach(self.cpu_usage[0], 0, 0, 1, 1)
-        grid.attach(self.ram_usage[0], 1, 0, 1, 1)
-        grid.attach(self.cpu_temp[0], 0, 1, 1, 1)
-        grid.attach(self.batt_draw[0], 1, 1, 1, 1)
+        graph_hdr = Gtk.Label(label="LIVE TELEMETRY PATH", halign=Gtk.Align.START)
+        graph_hdr.add_css_class("monospace")
+        graph_hdr.add_css_class("caption")
+        graph_card.append(graph_hdr)
 
         self.graph = PerformanceGraph(controller=self.ctrl)
-        self.graph.set_vexpand(True)
-        self.append(self.graph)
-
-    def _create_metric_card(self, title, unit):
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.add_css_class("card")
-        
-        t_lbl = Gtk.Label(label=title)
-        t_lbl.add_css_class("caption")
-        
-        v_lbl = Gtk.Label(label=f"0 {unit}")
-        v_lbl.add_css_class("heading")
-        
-        box.append(t_lbl)
-        box.append(v_lbl)
-        return box, v_lbl, unit
-
-    def _on_adaptive_toggled(self, switch, state):
-        def _do():
-            # In Phase 4, we use 'smart_fan_active' as the state key
-            self.ctrl.apply_preset("smart-fan" if state else "balanced")
-        
-        import threading
-        threading.Thread(target=_do, daemon=True).start()
-        return True # Fix: Returning True tells GTK to keep the requested state
+        graph_card.append(self.graph)
 
     def update_stats(self):
-        self.cpu_usage[1].set_text(f"{self.ctrl.cpu_usage()} %")
-        self.ram_usage[1].set_text(f"{self.ctrl.ram_usage()} %")
-        self.cpu_temp[1].set_text(f"{self.ctrl.cpu_temp()} °C")
-        
-        # Now showing CPU Package Wattage instead of Battery Draw in this slot
-        self.batt_draw[1].set_text(f"{self.ctrl.cpu_wattage()} W")
+        # 1. Update Hex Widgets
+        self.cpu_hex.set_value(self.ctrl.cpu_usage())
+        self.gpu_hex.set_value(self.ctrl.gpu_usage())
 
+        # 2. Update Thermal Bars
+        self.cpu_heat.set_temp(self.ctrl.cpu_temp())
+        self.gpu_heat.set_temp(self.ctrl.gpu_temp())
+
+        # 3. Update Mode Badge
         state = self.ctrl.get_state()
-        is_smart = state.get('smart_fan_active', False)
-        
-        # Keep switch in sync with state if changed elsewhere (Fn+Q)
-        if self.adaptive_switch.get_active() != is_smart:
-            self.adaptive_switch.set_active(is_smart)
+        p = state['power_profile']
+        if p == "performance": self.main_mode.update_mode("PERFORMANCE", "badge-orange")
+        elif p == "balanced": self.main_mode.update_mode("BALANCED", "badge-blue")
+        else: self.main_mode.update_mode("QUIET", "badge-green")
 
-        self.gpu_badge.set_status(state['gpu_mode'], "green" if state['gpu_mode'] == 'hybrid' else "red" if state['gpu_mode'] == 'nvidia' else "grey")
-
-        self.power_badge.set_status(state['power_profile'], "blue")
+        # 4. Update Status Badges
+        self.gpu_status.set_status(state['gpu_mode'].upper(), "badge-blue")
+        self.ac_status.set_status("AC" if state['charger_connected'] else "BATT", "badge-grey")
         
-        is_smart = state.get('smart_fan_active', False)
-        self.fan_badge.set_status("SMART" if is_smart else state['fan_mode'], "orange" if is_smart else "grey")
-        self.ac_badge.set_status("AC" if state['charger_connected'] else "BATT", "grey" if state['charger_connected'] else "orange")
-        
-        policy = self.ctrl.get_current_policy()
-        self.policy_badge.set_status(policy.upper(), "purple")
-
         safety = self.ctrl.get_safety_status()
-        color = "green" if safety == "ok" else ("orange" if safety == "throttled" else "red")
-        self.safety_badge.set_status(safety.upper(), color)
+        self.safety_status.set_status(f"SHIELD: {safety.upper()}", "badge-green" if safety == "ok" else "badge-red")
+        
+        is_smart = state.get('smart_fan_active', False)
+        self.brain_status.set_status("BRAIN: ACTIVE" if is_smart else "BRAIN: OFF", "badge-orange" if is_smart else "badge-grey")
 
 
