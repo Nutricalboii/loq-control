@@ -1,10 +1,6 @@
-"""
-Power profile control via direct ACPI API.
-Bypasses powerprofilesctl since power-profiles-daemon may be masked.
-"""
-
 from pathlib import Path
 from loq_control.core.logger import get_logger
+from loq_control.core.priv_helper import run_privileged
 
 log = get_logger("loq-control.power")
 ACPI_PROFILE = Path("/sys/firmware/acpi/platform_profile")
@@ -23,18 +19,16 @@ def get_current_profile() -> str:
 
 
 def _set_profile(profile: str) -> bool:
-    try:
-        if not ACPI_PROFILE.exists():
-            log.error("ACPI platform_profile not found")
-            return False
-        ACPI_PROFILE.write_text(profile)
-        return True
-    except PermissionError:
-        log.error("Permission denied writing to platform_profile")
+    if not ACPI_PROFILE.exists():
+        log.error("ACPI platform_profile not found")
         return False
-    except Exception as e:
-        log.error("Failed to set profile %s: %s", profile, e)
-        return False
+        
+    cmd = ["sh", "-c", f"echo '{profile}' > {ACPI_PROFILE}"]
+    success = run_privileged(cmd)
+    
+    if not success:
+        log.error("Permission denied or failed to set profile %s", profile)
+    return success
 
 
 def battery() -> bool:
