@@ -11,15 +11,21 @@ class PowerPage(Gtk.Box):
         self.ctrl = controller
         self.window = window
 
-        self.append(Gtk.Label(label="Global Power Profiles:", halign=Gtk.Align.START))
+        title = Gtk.Label(label="<b>Power Domain Control</b>", use_markup=True, halign=Gtk.Align.START)
+        title.add_css_class("heading")
+        self.append(title)
+
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        card.add_css_class("industrial-card")
+        self.append(card)
 
         saver = Gtk.Button(label="Battery Saver")
         balanced = Gtk.Button(label="Balanced")
         perf = Gtk.Button(label="Performance")
 
-        self.append(saver)
-        self.append(balanced)
-        self.append(perf)
+        card.append(saver)
+        card.append(balanced)
+        card.append(perf)
 
         saver.connect("clicked", lambda x: self._power_switch("power-saver"))
         balanced.connect("clicked", lambda x: self._power_switch("balanced"))
