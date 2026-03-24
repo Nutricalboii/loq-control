@@ -14,6 +14,7 @@ Implements the Transition Framework:
 """
 
 import threading
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -102,6 +103,19 @@ class HardwareService:
             cls._instance = None
 
     # ------------------------------------------------------------------
+    # Helper: Lock with Retry
+    # ------------------------------------------------------------------
+
+    def _lock_with_retry(self, source: str, timeout: float = 3.0) -> bool:
+        """Retry locking the transition state for up to 'timeout' seconds."""
+        iterations = int(timeout / 0.2)
+        for _ in range(iterations):
+            if self._state.lock_transition(source):
+                return True
+            time.sleep(0.2)
+        return False
+
+    # ------------------------------------------------------------------
     # Initialise state from actual hardware
     # ------------------------------------------------------------------
 
@@ -138,35 +152,27 @@ class HardwareService:
             log.hardware("info", "[%s] GPU already in %s mode", source, mode)
             return HWResult(True, f"Already in {mode} mode", needs_reboot=False)
 
-        # 1. Lock transition
-        if not self._state.lock_transition(source):
-            return HWResult(False, "Another transition in progress")
+        if not self._lock_with_retry(source):
+            return HWResult(False, "Another transition in progress (system is busy, please wait)")
 
         try:
-            # 2. Mark manual override if from GUI/CLI
             if source in ("gui", "cli"):
                 self._state.set_manual_override()
 
-            # 3. Execute
             log.hardware("info", "[%s] GPU switch → %s", source, mode)
             ok = _call_hw(_GPU_WRITERS, mode)
 
             if not ok:
                 log.hardware("error", "[%s] GPU switch to '%s' FAILED", source, mode)
-                self._state.report_failure("gpu_mode", mode, "prime-select failed")
                 return HWResult(False, f"prime-select failed for '{mode}'")
 
-            # 4. Update state
             self._state.force_set("gpu_mode", mode)
-            log.hardware("info", "[%s] GPU mode now: %s", source, mode)
-
             return HWResult(True, f"GPU → {mode}", needs_reboot=True)
 
         except Exception as e:
             log.hardware("error", "[%s] GPU switch CRASHED: %s", source, e)
             return HWResult(False, f"Internal error during GPU switch: {e}")
         finally:
-            # 5. Unlock
             self._state.unlock_transition()
 
     # ------------------------------------------------------------------
@@ -181,8 +187,8 @@ class HardwareService:
             log.hardware("info", "[%s] Power profile already %s", source, profile)
             return HWResult(True, f"Already in {profile}", needs_reboot=False)
 
-        if not self._state.lock_transition(source):
-            return HWResult(False, "Another transition in progress")
+        if not self._lock_with_retry(source):
+            return HWResult(False, "Another transition in progress (system is busy, please wait)")
 
         try:
             if source in ("gui", "cli"):
@@ -196,15 +202,11 @@ class HardwareService:
 
             # Then ACPI power profile script
             ok = _call_hw(_POWER_WRITERS, profile)
-
             if not ok:
                 log.hardware("error", "[%s] Power profile '%s' FAILED", source, profile)
-                self._state.report_failure("power_profile", profile, "powerprofilesctl failed")
                 return HWResult(False, f"powerprofilesctl failed for '{profile}'")
 
             self._state.force_set("power_profile", profile)
-            log.hardware("info", "[%s] Power profile now: %s", source, profile)
-
             return HWResult(True, f"Power → {profile}")
 
         except Exception as e:
@@ -221,21 +223,17 @@ class HardwareService:
         if mode not in _FAN_WRITERS:
             return HWResult(False, f"Invalid fan mode: {mode}")
 
-        if not self._state.lock_transition(source):
-            return HWResult(False, "Another transition in progress")
+        if not self._lock_with_retry(source):
+            return HWResult(False, "Another transition in progress (system is busy, please wait)")
 
         try:
             log.hardware("info", "[%s] Fan mode → %s", source, mode)
             ok = _call_hw(_FAN_WRITERS, mode)
-
             if not ok:
                 log.hardware("error", "[%s] Fan mode '%s' FAILED", source, mode)
-                self._state.report_failure("fan_mode", mode, "acpi write failed")
                 return HWResult(False, f"Platform profile write failed for '{mode}'")
 
             self._state.force_set("fan_mode", mode)
-            log.hardware("info", "[%s] Fan mode now: %s", source, mode)
-
             return HWResult(True, f"Fan → {mode}")
 
         except Exception as e:
@@ -249,13 +247,12 @@ class HardwareService:
     # ------------------------------------------------------------------
 
     def set_conservation(self, enabled: bool, source: str = "gui") -> HWResult:
-        if not self._state.lock_transition(source):
-            return HWResult(False, "Another transition in progress")
+        if not self._lock_with_retry(source):
+            return HWResult(False, "Another transition in progress (system is busy, please wait)")
 
         try:
             log.hardware("info", "[%s] Conservation mode → %s", source, enabled)
             ok = battery.set_conservation_mode(enabled)
-            
             if not ok:
                 return HWResult(False, "Failed to set conservation mode")
                 
@@ -268,13 +265,11 @@ class HardwareService:
 
     def set_smart_fan(self, active: bool, source: str = "gui") -> HWResult:
         """Toggle the adaptive smart fan (PolicyEngine)."""
-        if not self._state.lock_transition(source):
-            return HWResult(False, "Another transition in progress")
-            
+        if not self._lock_with_retry(source):
+            return HWResult(False, "Another transition in progress (system is busy, please wait)")
+
         try:
             log.hardware("info", "[%s] Smart Fan (Adaptive) → %s", source, active)
-            
-            # If turning ON, we typically clear manual override to let the engine work
             if active and source in ("gui", "cli"):
                 self._state.clear_manual_override()
                 
