@@ -253,21 +253,36 @@ class HardwareService:
             return HWResult(False, "Another transition in progress")
 
         try:
-            log.hardware("info", "[%s] Conservation → %s", source, enabled)
-            ok = battery.conservation_on() if enabled else battery.conservation_off()
-
+            log.hardware("info", "[%s] Conservation mode → %s", source, enabled)
+            ok = battery.set_conservation_mode(enabled)
+            
             if not ok:
-                log.hardware("error", "[%s] Conservation mode FAILED", source)
                 return HWResult(False, "Failed to set conservation mode")
-
+                
             self._state.force_set("conservation_mode", enabled)
-            log.hardware("info", "[%s] Conservation now: %s", source, enabled)
-
-            return HWResult(True, f"Conservation → {enabled}")
-
+            return HWResult(True, f"Conservation → {'ON' if enabled else 'OFF'}")
         except Exception as e:
-            log.hardware("error", "[%s] Conservation mode CRASHED: %s", source, e)
             return HWResult(False, f"Internal error during conservation switch: {e}")
+        finally:
+            self._state.unlock_transition()
+
+    def set_smart_fan(self, active: bool, source: str = "gui") -> HWResult:
+        """Toggle the adaptive smart fan (PolicyEngine)."""
+        if not self._state.lock_transition(source):
+            return HWResult(False, "Another transition in progress")
+            
+        try:
+            log.hardware("info", "[%s] Smart Fan (Adaptive) → %s", source, active)
+            
+            # If turning ON, we typically clear manual override to let the engine work
+            if active and source in ("gui", "cli"):
+                self._state.clear_manual_override()
+                
+            self._state.force_set("smart_fan_active", active)
+            return HWResult(True, f"Smart Fan {'Enabled' if active else 'Disabled'}")
+        except Exception as e:
+            log.hardware("error", "[%s] Smart Fan toggle FAILED: %s", source, e)
+            return HWResult(False, f"Internal error during smart fan toggle: {e}")
         finally:
             self._state.unlock_transition()
 
@@ -276,22 +291,30 @@ class HardwareService:
     # ------------------------------------------------------------------
 
     def apply_preset(self, preset: str, source: str = "gui") -> HWResult:
-        """Apply a named preset (battery / balanced / gaming / overclock)."""
+        """Apply a named preset (battery / balanced / gaming / overclock / smart-fan)."""
         presets = {
-            "battery": ("power-saver", "quiet"),
-            "balanced": ("balanced", "balanced"),
-            "gaming": ("performance", "performance"),
-            "overclock": ("performance", "custom"),
+            "battery": ("power-saver", "quiet", False),
+            "balanced": ("balanced", "balanced", False),
+            "gaming": ("performance", "performance", False),
+            "overclock": ("performance", "custom", False),
+            "smart-fan": ("balanced", "balanced", True),
         }
         if preset not in presets:
             return HWResult(False, f"Unknown preset: {preset}")
 
-        profile, fan_mode = presets[preset]
+        profile, fan_mode, smart_active = presets[preset]
 
+        # 1. Handle Smart Fan state
+        r0 = self.set_smart_fan(smart_active, source)
+        if not r0.success:
+            return r0
+
+        # 2. Handle Power profile
         r1 = self.set_power_profile(profile, source)
         if not r1.success:
             return r1
 
+        # 3. Handle Fan mode
         r2 = self.set_fan_mode(fan_mode, source)
         if not r2.success:
             return HWResult(False, f"Power OK but fan failed: {r2.message}")
