@@ -144,7 +144,7 @@ class CPUPowerManager:
 
         if self.cpu_vendor == "intel":
             if profile == "quiet":
-                return self.set_intel_limits(15, 25, source)
+                return self.set_intel_limits(10, 25, source)
 
             if profile == "balanced":
                 return self.set_intel_limits(25, 45, source)

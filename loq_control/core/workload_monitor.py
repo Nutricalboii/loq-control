@@ -19,6 +19,10 @@ class WorkloadMonitor:
         from loq_control.core import monitor
         gpu = monitor.gpu_usage()
         
+        # Include thermal data for the Policy Engine
+        from loq_control.core.thermal_manager import ThermalManager
+        temp = ThermalManager.get().get_cpu_temp()
+        
         self._cpu_history.append(cpu)
         self._gpu_history.append(gpu)
         
@@ -29,6 +33,7 @@ class WorkloadMonitor:
         return {
             "cpu_avg": sum(self._cpu_history) / len(self._cpu_history),
             "gpu_avg": sum(self._gpu_history) / len(self._gpu_history),
+            "cpu_temp": temp,
             "power": monitor.cpu_wattage(),
             "active_window": self._get_active_window_class()
         }

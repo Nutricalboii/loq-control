@@ -65,6 +65,11 @@ class PolicyEngine:
                 self._current_policy = new_policy
 
     def _classify(self, m: dict) -> WorkloadType:
+        # Thermal Safety Override: If temps are high, escalate regardless of load
+        if m.get("cpu_temp", 0) > 75:
+            log.daemon("warning", f"Thermal Safety Override: Temp {m['cpu_temp']}°C > 75°C. Escalating fans.")
+            return WorkloadType.GAMING
+
         if m["cpu_avg"] < 5 and m["gpu_avg"] < 2:
             return WorkloadType.IDLE
         if m["cpu_avg"] > 40 or m["gpu_avg"] > 30:
