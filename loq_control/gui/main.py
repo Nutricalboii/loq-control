@@ -1,5 +1,7 @@
 """
-LOQ Control Center — GTK4 Main Window
+LOQ Control Center v1.2.0 — GTK4 Main Window
+Architected by Vaibhav Pandit: An Unharming Blueprint for LOQ Hardware.
+
 Launches as NORMAL USER. No sudo required.
 Hardware writes escalate via pkexec when needed.
 """
@@ -23,7 +25,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, app, ctrl):
         super().__init__(application=app)
 
-        self.set_title("LOQ Control Center v0.9")
+        self.set_title("LOQ Control Center v1.2.0")
         self.set_default_size(1100, 700)
         self.ctrl = ctrl
         self.settings = GuiSettings.get()
@@ -74,6 +76,29 @@ class MainWindow(Gtk.ApplicationWindow):
         theme_combo.set_selected(theme_map.get(current_theme, 0))
         theme_combo.connect("notify::selected", self._on_theme_changed)
         theme_box.append(theme_combo)
+
+        # Spacer to push credits to the bottom
+        spacer = Gtk.Box()
+        spacer.set_vexpand(True)
+        sidebar.append(spacer)
+
+        # Developer Credits
+        credit_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        credit_box.set_margin_bottom(10)
+        credit_box.set_margin_start(10)
+        credit_box.set_margin_end(10)
+        
+        dev_lbl = Gtk.Label(label="By Vaibhav Pandit")
+        dev_lbl.add_css_class("caption")
+        dev_lbl.set_halign(Gtk.Align.START)
+        credit_box.append(dev_lbl)
+        
+        blue_lbl = Gtk.Label(label="Secure Blueprint v1.2")
+        blue_lbl.add_css_class("caption-dim")
+        blue_lbl.set_halign(Gtk.Align.START)
+        credit_box.append(blue_lbl)
+        
+        sidebar.append(credit_box)
 
         # ================= STACK =================
         self.stack = Gtk.Stack()

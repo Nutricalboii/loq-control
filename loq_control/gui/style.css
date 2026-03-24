@@ -9,6 +9,11 @@ label.caption {
     opacity: 0.7;
 }
 
+label.caption-dim {
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
 .status-badge {
     border-radius: 12px;
     padding-left: 2px;
