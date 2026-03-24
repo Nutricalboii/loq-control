@@ -14,6 +14,7 @@ from loq_control.gui.gpu_page import GPUPage
 from loq_control.gui.power_page import PowerPage
 from loq_control.gui.thermals_page import ThermalsPage
 from loq_control.gui.log_viewer_page import LogViewerPage
+from loq_control.gui.telemetry_page import TelemetryPage
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -47,6 +48,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_nav_button(sidebar, "GPU MUX", "gpu")
         self._add_nav_button(sidebar, "Power Profiles", "power")
         self._add_nav_button(sidebar, "Thermal Layout", "thermals")
+        self._add_nav_button(sidebar, "Deep Analysis", "telemetry")
         self._add_nav_button(sidebar, "Live Logs", "logs")
 
         # ================= STACK =================
@@ -61,12 +63,14 @@ class MainWindow(Gtk.ApplicationWindow):
         self.gpu_page = GPUPage(self.ctrl, self)
         self.power_page = PowerPage(self.ctrl, self)
         self.thermals_page = ThermalsPage(self.ctrl)
+        self.telemetry_page = TelemetryPage(self.ctrl)
         self.logs_page = LogViewerPage(self.ctrl)
 
         self.stack.add_named(self.dash_page, "dash")
         self.stack.add_named(self.gpu_page, "gpu")
         self.stack.add_named(self.power_page, "power")
         self.stack.add_named(self.thermals_page, "thermals")
+        self.stack.add_named(self.telemetry_page, "telemetry")
         self.stack.add_named(self.logs_page, "logs")
 
         self.stack.set_visible_child_name("dash")
