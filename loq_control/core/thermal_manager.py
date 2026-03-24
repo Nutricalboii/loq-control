@@ -174,3 +174,15 @@ class ThermalManager:
             "zones": self.thermal_zones,
             "fans": self.fans
         }
+    def get_cpu_temp(self) -> float:
+        """Heuristic to return the most relevant CPU package temperature."""
+        temps = self.telemetry.get("temps", {})
+        # Common Lenovo/Intel/AMD sensor names
+        for key in ("x86_pkg_temp", "cpu_thermal", "acpitz", "k10temp", "coretemp"):
+            if key in temps:
+                return temps[key]
+        
+        # Fallback to the first available sensor if others fail
+        if temps:
+            return next(iter(temps.values()))
+        return 45.0 # safe baseline
