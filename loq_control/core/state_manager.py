@@ -239,10 +239,23 @@ class StateManager:
         Acquire the transition lock.  Returns True if acquired,
         False if already locked.
         """
+        # Safety Override: If a transition has been stuck for > 60s, force unlock
+        with self._lock:
+            if self._in_transition:
+                stuck_time = time.monotonic() - self._last_transition_ts
+                if stuck_time > 60:
+                    log.hardware("warning", f"Transition STUCK for {stuck_time:.1f}s - Force unlocking!")
+                    self._in_transition = False
+                    try:
+                        self._transition_lock.release()
+                    except RuntimeError:
+                        pass # wasn't locked but flag was True? sync it.
+
         acquired = self._transition_lock.acquire(blocking=False)
         if acquired:
             with self._lock:
                 self._in_transition = True
+                self._last_transition_ts = time.monotonic()
             return True
         return False
 

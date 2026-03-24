@@ -7,6 +7,8 @@ import subprocess
 import shutil
 
 
+from loq_control.core.priv_helper import run_privileged
+
 def _nvidia_exists():
     return shutil.which("nvidia-smi") is not None
 
@@ -15,8 +17,9 @@ def get_current_mode() -> str:
     """Query the currently active prime-select profile."""
     try:
         out = subprocess.check_output(
-            "prime-select query", shell=True, stderr=subprocess.DEVNULL
+            ["prime-select", "query"], stderr=subprocess.DEVNULL
         ).decode().strip().lower()
+        
         # Normalise prime-select output
         if out in ("intel", "integrated"):
             return "integrated"
@@ -30,23 +33,21 @@ def get_current_mode() -> str:
 
 
 def set_integrated() -> bool:
-    result = subprocess.run(
-        "sudo prime-select intel", shell=True, capture_output=True
-    )
-    return result.returncode == 0
+    """Switch to Intel/Integrated graphics."""
+    # Try 'intel' first, then fallback to 'integrated' (common in newer prime-select)
+    ok = run_privileged(["prime-select", "intel"])
+    if not ok:
+        ok = run_privileged(["prime-select", "integrated"])
+    return ok
 
 
 def set_hybrid() -> bool:
-    result = subprocess.run(
-        "sudo prime-select on-demand", shell=True, capture_output=True
-    )
-    return result.returncode == 0
+    """Switch to Hybrid (On-demand) graphics."""
+    return run_privileged(["prime-select", "on-demand"])
 
 
 def set_nvidia() -> bool:
+    """Switch to NVIDIA-only graphics."""
     if not _nvidia_exists():
         return False
-    result = subprocess.run(
-        "sudo prime-select nvidia", shell=True, capture_output=True
-    )
-    return result.returncode == 0
+    return run_privileged(["prime-select", "nvidia"])
