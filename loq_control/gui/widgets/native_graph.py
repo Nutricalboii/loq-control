@@ -97,15 +97,6 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         cr.set_source_rgb(0.8, 0.8, 0.8)
         cr.move_to(x + 15, y)
         cr.show_text(label)
-        
-        # 2. Draw CPU (Blue)
-        self._plot_data(cr, self.cpu_history, 0, 100, width, height, (0.2, 0.6, 1.0))
-        
-        # 3. Draw Wattage (Green)
-        self._plot_data(cr, self.watt_history, 0, 80, width, height, (0.2, 0.9, 0.4))
-        
-        # 4. Draw Temp (Red)
-        self._plot_data(cr, self.temp_history, 30, 100, width, height, (1.0, 0.3, 0.3))
 
     def _plot_data(self, cr, data, min_val, max_val, width, height, color):
         if not data: return
