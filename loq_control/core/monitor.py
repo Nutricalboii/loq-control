@@ -81,8 +81,14 @@ def cpu_wattage() -> float:
 def battery_status() -> dict:
     """Fetch advanced battery metrics: discharge rate, percent, time left."""
     try:
-        bat_root = Path("/sys/class/power_supply/BAT0")
-        if not bat_root.exists(): return {}
+        bat_root = None
+        for name in ("BAT0", "BAT1"):
+            p = Path(f"/sys/class/power_supply/{name}")
+            if p.exists():
+                bat_root = p
+                break
+                
+        if not bat_root: return {}
 
         cap = int((bat_root / "capacity").read_text())
         is_charging = "Charging" in (bat_root / "status").read_text()
