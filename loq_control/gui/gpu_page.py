@@ -6,12 +6,15 @@ import threading
 class GPUPage(Gtk.Box):
     def __init__(self, controller, window):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=15)
-        self.set_margin_all(24) # Gtk4 style
+        self.set_margin_start(24)
+        self.set_margin_end(24)
+        self.set_margin_top(24)
+        self.set_margin_bottom(24)
         self.ctrl = controller
         self.window = window
 
         # Title
-        title = Gtk.Label(label="<b>NVIDIA Telemetry & Control</b>", use_markup=True, halign=Gtk.Align.START)
+        title = Gtk.Label(label="<b>NVIDIA Telemetry &amp; Control</b>", use_markup=True, halign=Gtk.Align.START)
         title.add_css_class("heading")
         self.append(title)
 

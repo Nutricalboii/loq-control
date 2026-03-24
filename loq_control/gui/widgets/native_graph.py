@@ -40,7 +40,7 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         self.queue_draw()
         return True
 
-    def _draw(self, area, cr, width, height, data):
+    def _draw(self, area, cr, width, height, *args):
         # 1. Background
         cr.set_source_rgb(0.05, 0.05, 0.05)
         cr.paint()

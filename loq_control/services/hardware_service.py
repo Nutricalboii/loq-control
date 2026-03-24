@@ -134,6 +134,10 @@ class HardwareService:
         if mode not in _GPU_WRITERS:
             return HWResult(False, f"Invalid GPU mode: {mode}")
 
+        if self._state.get("gpu_mode") == mode:
+            log.hardware("info", "[%s] GPU already in %s mode", source, mode)
+            return HWResult(True, f"Already in {mode} mode", needs_reboot=False)
+
         # 1. Lock transition
         if not self._state.lock_transition(source):
             return HWResult(False, "Another transition in progress")
@@ -172,6 +176,10 @@ class HardwareService:
     def set_power_profile(self, profile: str, source: str = "gui") -> HWResult:
         if profile not in _POWER_WRITERS:
             return HWResult(False, f"Invalid power profile: {profile}")
+
+        if self._state.get("power_profile") == profile:
+            log.hardware("info", "[%s] Power profile already %s", source, profile)
+            return HWResult(True, f"Already in {profile}", needs_reboot=False)
 
         if not self._state.lock_transition(source):
             return HWResult(False, "Another transition in progress")
