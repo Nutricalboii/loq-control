@@ -14,7 +14,7 @@ class TelemetryPage(Gtk.Box):
         self.ctrl = controller
 
         # Title
-        title = Gtk.Label(label="<b>Deep Analysis & Telemetry</b>", use_markup=True, halign=Gtk.Align.START)
+        title = Gtk.Label(label="<b>Deep Analysis &amp; Telemetry</b>", use_markup=True, halign=Gtk.Align.START)
         title.add_css_class("heading")
         self.append(title)
         

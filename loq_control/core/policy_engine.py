@@ -34,6 +34,10 @@ class PolicyEngine:
             cls._instance = PolicyEngine(state)
         return cls._instance
 
+    @classmethod
+    def get(cls):
+        return cls._instance
+
     def get_current_policy(self) -> WorkloadType:
         return self._current_policy
 
