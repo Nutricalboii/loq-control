@@ -51,6 +51,11 @@ class PolicyEngine:
     def _loop(self):
         while self._running:
             time.sleep(5.0) # Check every 5s
+            
+            # Master Switch: Only classify/apply if global adaptive mode is ON
+            if not self._state.get("smart_fan_active"):
+                continue
+
             metrics = self._monitor.get_current_metrics()
             
             new_policy = self._classify(metrics)
@@ -71,7 +76,7 @@ class PolicyEngine:
     def _apply_policy(self, policy: WorkloadType):
         if policy == WorkloadType.GAMING:
             self._state.request_transition("power_profile", "performance", source="policy")
-            self._state.request_transition("smart_fan_active", True, source="policy")
+            self._state.request_transition("fan_mode", "performance", source="policy")
         elif policy == WorkloadType.IDLE or policy == WorkloadType.OFFICE:
             self._state.request_transition("power_profile", "quiet", source="policy")
-            self._state.request_transition("smart_fan_active", False, source="policy")
+            self._state.request_transition("fan_mode", "quiet", source="policy")
