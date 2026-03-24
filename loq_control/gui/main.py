@@ -1,13 +1,13 @@
-print("GUI STARTED")
 """
 LOQ Control Center — GTK4 Main Window
+Launches as NORMAL USER. No sudo required.
+Hardware writes escalate via pkexec when needed.
 """
 
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gdk
 
-from loq_control.services import daemon
 from loq_control.gui.controller import AppController
 from loq_control.gui.dashboard_page import DashboardPage
 from loq_control.gui.gpu_page import GPUPage
@@ -15,22 +15,15 @@ from loq_control.gui.power_page import PowerPage
 from loq_control.gui.thermals_page import ThermalsPage
 from loq_control.gui.log_viewer_page import LogViewerPage
 
-# Bootstrap all services
-daemon.start()
-
-# Build the controller
-_state = daemon.get_state()
-_hw = daemon.get_hw_service()
-controller = AppController(state=_state, hw=_hw)
 
 class MainWindow(Gtk.ApplicationWindow):
 
-    def __init__(self, app):
+    def __init__(self, app, ctrl):
         super().__init__(application=app)
 
-        self.set_title("LOQ Control Center v0.7 — Premium Performance")
+        self.set_title("LOQ Control Center v0.9")
         self.set_default_size(1100, 700)
-        self.ctrl = controller
+        self.ctrl = ctrl
 
         # Load CSS
         self._load_css()
@@ -137,17 +130,40 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
 def main():
+    """
+    GUI entry point. Runs as a normal user. No sudo needed.
+    Hardware services are initialized in the background.
+    Privileged writes use pkexec (polkit) when triggered.
+    """
+    import threading
+    from loq_control.core.state_manager import StateManager
+    from loq_control.services.hardware_service import HardwareService
+
+    # Start hardware backend in background — never block UI
+    def _start_backend():
+        try:
+            from loq_control.services import daemon
+            daemon.start()
+        except Exception as e:
+            # Non-fatal — GUI still shows, just without daemon features
+            print(f"[LOQ] Daemon backend warning: {e}")
+
+    threading.Thread(target=_start_backend, daemon=True).start()
+
+    # Build controller with unprivileged state access
+    _state = StateManager()
+    _hw = HardwareService(state=_state)
+    ctrl = AppController(state=_state, hw=_hw)
+
     app = Gtk.Application(application_id="com.loqcontrol.app")
-    
+
     def on_activate(app):
-        win = MainWindow(app)
+        win = MainWindow(app, ctrl)
         win.present()
-        
+
     app.connect("activate", on_activate)
-    print("GUI STARTED")
     app.run(None)
 
 
 if __name__ == "__main__":
     main()
-
