@@ -86,6 +86,11 @@ def start():
     _policy = PolicyEngine.init(_state)
     _policy.start()
 
+    # 7. Battery Charge Manager
+    from loq_control.core.battery_charge_manager import BatteryChargeManager
+    _battery_mgr = BatteryChargeManager.get(_state)
+    _battery_mgr.start()
+
     log.daemon("info", "Daemon started — all services running")
 
 

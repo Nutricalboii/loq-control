@@ -96,6 +96,8 @@ class GPUPage(Gtk.Box):
             result = self.ctrl.switch_gpu(mode)
             if result.success and result.needs_reboot:
                 GLib.idle_add(self.window._show_reboot_dialog)
+            elif result.success:
+                GLib.idle_add(self.window.update_stats)
             elif not result.success:
                 GLib.idle_add(self.window._show_error, result.message)
 

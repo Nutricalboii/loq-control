@@ -18,21 +18,41 @@ def get_current_profile() -> str:
     return "unknown"
 
 
-def _set_profile(profile: str) -> bool:
+def _set_profile(category: str) -> bool:
+    """Best-effort match for a profile category and write it."""
     if not ACPI_PROFILE.exists():
         log.error("ACPI platform_profile not found")
         return False
         
-    cmd = ["sh", "-c", f"echo '{profile}' > {ACPI_PROFILE}"]
+    choices_path = Path("/sys/firmware/acpi/platform_profile_choices")
+    choices = choices_path.read_text().split() if choices_path.exists() else []
+    
+    # Mapping table (Standardized -> Hardware Specific)
+    mapping = {
+        "battery": ["quiet", "low-power", "power-saver"],
+        "balanced": ["balanced", "default", "middle"],
+        "performance": ["performance", "turbo", "high-performance"]
+    }
+    
+    target = None
+    for option in mapping.get(category, []):
+        if option in choices:
+            target = option
+            break
+            
+    if not target:
+        # Fallback to the requested name itself if not in choices
+        target = category
+        
+    cmd = ["sh", "-c", f"echo '{target}' > {ACPI_PROFILE}"]
     success = run_privileged(cmd)
     
     if not success:
-        log.error("Permission denied or failed to set profile %s", profile)
+        log.error("Failed to set profile %s (target: %s)", category, target)
     return success
 
-
 def battery() -> bool:
-    return _set_profile("low-power")
+    return _set_profile("battery")
 
 def balanced() -> bool:
     return _set_profile("balanced")

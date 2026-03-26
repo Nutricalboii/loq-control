@@ -27,6 +27,9 @@ class NativePerformanceGraph(Gtk.DrawingArea):
             self.temp_history.append(40)
             
         self.set_draw_func(self._draw)
+        self.set_hexpand(True)
+        self.set_vexpand(True)
+        self.set_size_request(-1, 220)
         
         # Update timer (500ms for responsiveness)
         GLib.timeout_add(500, self._on_timer)
@@ -47,29 +50,47 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         return True
 
     def _draw(self, area, cr, width, height, *args):
-        # 1. Background (Industrial Dark)
-        cr.set_source_rgb(0.04, 0.06, 0.08)
+        # Detect theme from widget state or parent
+        is_light = self.get_root() and self.get_root().has_css_class("light-theme")
+        
+        # 1. Background
+        if is_light:
+            cr.set_source_rgba(0.96, 0.97, 0.98, 1.0) # Light Grey
+        else:
+            cr.set_source_rgba(0.07, 0.09, 0.13, 0.8) # Industrial Dark
         cr.paint()
         
         # Grid setup
-        cr.select_font_face("JetBrains Mono", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        cr.select_font_face("JetBrains Mono", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(9)
 
-        # Draw subtle grid
+        # Draw techy grid
         cr.set_line_width(0.5)
+        
+        # Vertical grid
+        if is_light: cr.set_source_rgba(0.0, 0.5, 0.8, 0.1) # Soft Blue
+        else: cr.set_source_rgba(0.0, 0.83, 1.0, 0.05)
+        
+        for i in range(1, 10):
+            vx = width * (i / 10.0)
+            cr.move_to(vx, 0); cr.line_to(vx, height); cr.stroke()
+
+        # Horizontal grid
         grid_steps = 4
         for i in range(1, grid_steps):
             y = height * (i / float(grid_steps))
-            cr.set_source_rgba(0.2, 0.3, 0.4, 0.2)
+            if is_light: cr.set_source_rgba(0.0, 0.5, 0.8, 0.15)
+            else: cr.set_source_rgba(0.0, 0.83, 1.0, 0.1)
             cr.move_to(0, y)
             cr.line_to(width, y)
             cr.stroke()
             
             # Y-Axis Labels
             val = 100 - int((i / grid_steps) * 100)
-            cr.set_source_rgba(0.5, 0.6, 0.7, 0.4)
-            cr.move_to(width - 30, y - 4)
-            cr.show_text(str(val))
+            if is_light: cr.set_source_rgba(0.3, 0.3, 0.3, 0.6)
+            else: cr.set_source_rgba(1, 1, 1, 0.3)
+            cr.move_to(width - 40, y - 4)
+            cr.show_text(f"{val}%")
 
         # 2. Draw Metrics
         legend_x = 20
@@ -116,7 +137,7 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         cr.line_to(0, height)
         cr.close_path()
         
-        gradient = cairo.LinearGradient(0, 0, 0, height)
+        gradient = cairo.LinearGradient(0, scale_y(data[0]), 0, height)
         gradient.add_color_stop_rgba(0, r, g, b, 0.2)
         gradient.add_color_stop_rgba(1, r, g, b, 0.0)
         cr.set_source(gradient)

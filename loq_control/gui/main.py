@@ -1,5 +1,5 @@
 """
-LOQ Control Center v1.2.0 — GTK4 Main Window
+LOQ Control Center v2.0.0 — GTK4 Main Window
 Architected by Vaibhav Pandit: An Unharming Blueprint for LOQ Hardware.
 
 Launches as NORMAL USER. No sudo required.
@@ -9,6 +9,7 @@ Hardware writes escalate via pkexec when needed.
 import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gdk
+import threading
 
 from loq_control.gui.controller import AppController
 from loq_control.gui.dashboard_page import DashboardPage
@@ -25,10 +26,13 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, app, ctrl):
         super().__init__(application=app)
 
-        self.set_title("LOQ Control Center v1.2.0")
+        self.set_title("LOQ Control Center v2.0.0")
         self.set_default_size(1100, 700)
         self.ctrl = ctrl
         self.settings = GuiSettings.get()
+        
+        # Bootstrap privileges (ask once at start)
+        GLib.idle_add(self._bootstrap_privileges)
 
         # Load CSS
         self._load_css()
@@ -93,7 +97,7 @@ class MainWindow(Gtk.ApplicationWindow):
         dev_lbl.set_halign(Gtk.Align.START)
         credit_box.append(dev_lbl)
         
-        blue_lbl = Gtk.Label(label="Secure Blueprint v1.2")
+        blue_lbl = Gtk.Label(label="Secure Blueprint v2.0.0")
         blue_lbl.add_css_class("caption-dim")
         blue_lbl.set_halign(Gtk.Align.START)
         credit_box.append(blue_lbl)
@@ -123,7 +127,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.stack.add_named(self.logs_page, "logs")
 
         self.stack.set_visible_child_name("dash")
-        GLib.timeout_add(2000, self.update_stats)
+        GLib.timeout_add(500, self.update_stats)
 
     def _add_nav_button(self, box, label, name):
         btn = Gtk.Button(label=label)
@@ -146,23 +150,31 @@ class MainWindow(Gtk.ApplicationWindow):
     def update_stats(self):
         self.dash_page.update_stats()
         self.thermals_page.update_stats()
+        self.power_page.update_stats()
         return True
 
     def _apply_theme(self, theme):
         settings = Gtk.Settings.get_default()
         if theme == "dark":
             settings.set_property("gtk-application-prefer-dark-theme", True)
+            self.remove_css_class("light-theme")
         elif theme == "light":
             settings.set_property("gtk-application-prefer-dark-theme", False)
+            self.add_css_class("light-theme")
         else:
             # System - reset to default
             settings.reset_property("gtk-application-prefer-dark-theme")
+            # Auto-detect for CSS class
+            is_dark = settings.get_property("gtk-application-prefer-dark-theme")
+            if is_dark: self.remove_css_class("light-theme")
+            else: self.add_css_class("light-theme")
 
     def _on_theme_changed(self, combo, pspec):
         idx = combo.get_selected()
         theme = ["system", "dark", "light"][idx]
         self.settings.set("theme", theme)
         self._apply_theme(theme)
+        self.update_stats()
 
     def check_first_run(self):
         if self.settings.get_val("first_run"):
@@ -218,6 +230,17 @@ class MainWindow(Gtk.ApplicationWindow):
         if response == Gtk.ResponseType.YES:
             import subprocess
             subprocess.Popen("reboot", shell=True)
+
+    def _bootstrap_privileges(self):
+        """Request hardware access authorization once at startup."""
+        def _do():
+            import subprocess
+            try:
+                # Dummy command to trigger pkexec prompt
+                subprocess.run(["pkexec", "true"], capture_output=True, timeout=30)
+            except:
+                pass
+        threading.Thread(target=_do, daemon=True).start()
 
     def _show_error(self, message: str):
         dialog = Gtk.MessageDialog(

@@ -65,7 +65,7 @@ class EventEngine:
     def __init__(
         self,
         state: StateManager,
-        poll_interval: float = 5.0,
+        poll_interval: float = 2.0,
     ):
         self._state = state
         self._poll_interval = poll_interval

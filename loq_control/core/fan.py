@@ -3,7 +3,7 @@ Fan / platform profile control via ACPI platform_profile sysfs.
 All functions return True on success, False on failure.
 """
 
-import subprocess
+from loq_control.core.priv_helper import run_privileged
 
 _PROFILE_PATH = "/sys/firmware/acpi/platform_profile"
 
@@ -18,42 +18,31 @@ def get_current_mode() -> str:
 
 
 def quiet() -> bool:
-    result = subprocess.run(
-        f"echo low-power | sudo tee {_PROFILE_PATH}",
-        shell=True, capture_output=True,
-    )
-    return result.returncode == 0
+    return _set_mode("low-power")
 
 
 def balanced() -> bool:
-    result = subprocess.run(
-        f"echo balanced | sudo tee {_PROFILE_PATH}",
-        shell=True, capture_output=True,
-    )
-    return result.returncode == 0
+    return _set_mode("balanced")
 
 
 def performance() -> bool:
-    result = subprocess.run(
-        f"echo performance | sudo tee {_PROFILE_PATH}",
-        shell=True, capture_output=True,
-    )
-    return result.returncode == 0
+    return _set_mode("performance")
 
 
 def custom() -> bool:
-    result = subprocess.run(
-        f"echo custom | sudo tee {_PROFILE_PATH}",
-        shell=True, capture_output=True,
-    )
-    return result.returncode == 0
+    return _set_mode("custom")
+
+
+def _set_mode(mode: str) -> bool:
+    """Helper to set platform profile using elevated privileges."""
+    cmd = ["sh", "-c", f"echo {mode} > {_PROFILE_PATH}"]
+    return run_privileged(cmd)
 
 
 def set_manual_pwm(fan_id: int, percent: int) -> bool:
     """
     Abstractions for fine-grained PWM writes.
     Translates percentage (0-100) to actual EC register logic or hwmon standard.
-    For Phase 3 framework building, this handles formatting the abstract payload.
     """
     from loq_control.core.logger import LoqLogger
     log = LoqLogger.get()
@@ -62,7 +51,5 @@ def set_manual_pwm(fan_id: int, percent: int) -> bool:
     pwm_val = int(255 * (percent / 100))
     
     # Safe stub: logs the target write dynamically prior to exact byte arrays
-    # TODO: In future phases this invokes `ec_manager` ACPI byte streams.
     log.firmware("info", f"EC PWM STUB WRITE: Fan {fan_id} -> {percent}% ({pwm_val}/255)")
     return True
-

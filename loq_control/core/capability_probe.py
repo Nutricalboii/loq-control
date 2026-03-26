@@ -172,13 +172,37 @@ class CapabilityProbe:
         bat = {}
 
         bat["charge_threshold"] = False
+        bat["charge_start_threshold"] = False
+        bat["charge_end_threshold"] = False
+        bat["rapid_charge"] = False
+        
         base = Path("/sys/class/power_supply")
 
         if base.exists():
             for dev in base.iterdir():
                 if "BAT" in dev.name:
                     if (dev / "charge_control_end_threshold").exists():
+                        bat["charge_end_threshold"] = True
                         bat["charge_threshold"] = True
+                    if (dev / "charge_control_start_threshold").exists():
+                        bat["charge_start_threshold"] = True
+                    
+                    # Rapid Charge detection (Lenovo specific often via ideapad_laptop)
+                    if (dev / "fast_charge").exists():
+                        bat["rapid_charge"] = True
+
+        # Fallback for Rapid Charge via ideapad_laptop
+        if not bat["rapid_charge"]:
+            if Path("/sys/bus/platform/drivers/ideapad_laptop/ideapad/fast_charge").exists():
+                bat["rapid_charge"] = True
+
+        # Conservation Mode (Legacy IdeaPad/VPC)
+        bat["conservation_mode_v2"] = False
+        vpc_path = "/sys/devices/pci0000:00/0000:00:1f.0/PNP0C09:00/VPC2004:00/conservation_mode"
+        if os.path.exists(vpc_path) or os.path.exists("/sys/bus/platform/drivers/ideapad_laptop/ideapad/conservation_mode"):
+            bat["conservation_mode_v2"] = True
+            bat["charge_threshold"] = True
+            bat["charge_end_threshold"] = True
 
         bat["power_now"] = False
         if base.exists():
