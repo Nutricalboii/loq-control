@@ -10,7 +10,10 @@ from loq_control.gui.widgets.status_badge import StatusBadge
 class DashboardPage(Gtk.Box):
     def __init__(self, controller):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
-        self.set_margin_all(24)
+        self.set_margin_top(24)
+        self.set_margin_bottom(24)
+        self.set_margin_start(24)
+        self.set_margin_end(24)
         self.ctrl = controller
 
         # ================= TOP SECTION: INDUSTRIAL COMMAND =================
@@ -70,29 +73,37 @@ class DashboardPage(Gtk.Box):
         graph_card.append(self.graph)
 
     def update_stats(self):
-        # 1. Update Hex Widgets
-        self.cpu_hex.set_value(self.ctrl.cpu_usage())
-        self.gpu_hex.set_value(self.ctrl.gpu_usage())
-
-        # 2. Update Thermal Bars
-        self.cpu_heat.set_temp(self.ctrl.cpu_temp())
-        self.gpu_heat.set_temp(self.ctrl.gpu_temp())
-
-        # 3. Update Mode Badge
-        state = self.ctrl.get_state()
-        p = state['power_profile']
-        if p == "performance": self.main_mode.update_mode("PERFORMANCE", "badge-orange")
-        elif p == "balanced": self.main_mode.update_mode("BALANCED", "badge-blue")
-        else: self.main_mode.update_mode("QUIET", "badge-green")
-
-        # 4. Update Status Badges
-        self.gpu_status.set_status(state['gpu_mode'].upper(), "badge-blue")
-        self.ac_status.set_status("AC" if state['charger_connected'] else "BATT", "badge-grey")
-        
-        safety = self.ctrl.get_safety_status()
-        self.safety_status.set_status(f"SHIELD: {safety.upper()}", "badge-green" if safety == "ok" else "badge-red")
-        
-        is_smart = state.get('smart_fan_active', False)
-        self.brain_status.set_status("BRAIN: ACTIVE" if is_smart else "BRAIN: OFF", "badge-orange" if is_smart else "badge-grey")
+        try:
+            # 1. Update Hex Widgets
+            self.cpu_hex.set_value(self.ctrl.cpu_usage())
+            self.gpu_hex.set_value(self.ctrl.gpu_usage())
+    
+            # 2. Update Thermal Bars
+            self.cpu_heat.set_temp(self.ctrl.cpu_temp())
+            self.gpu_heat.set_temp(self.ctrl.gpu_temp())
+    
+            # 3. Update Mode Badge
+            state = self.ctrl.get_state()
+            p = state.get('power_profile', 'balanced')
+            if p == "performance": 
+                self.main_mode.update_mode("PERFORMANCE", "badge-red")
+            elif p in ("balanced", "default"): 
+                self.main_mode.update_mode("BALANCED", "badge-blue")
+            elif p in ("power-saver", "quiet", "low-power"): 
+                self.main_mode.update_mode("SILENT", "badge-green")
+            else:
+                self.main_mode.update_mode("QUIET", "badge-green")
+    
+            # 4. Update Status Badges
+            self.gpu_status.set_status(state['gpu_mode'].upper(), "badge-blue")
+            self.ac_status.set_status("AC" if state['charger_connected'] else "BATT", "badge-grey")
+            
+            safety = self.ctrl.get_safety_status()
+            self.safety_status.set_status(f"SHIELD: {safety.upper()}", "badge-green" if safety == "ok" else "badge-red")
+            
+            is_smart = state.get('smart_fan_active', False)
+            self.brain_status.set_status("BRAIN: ACTIVE" if is_smart else "BRAIN: OFF", "badge-orange" if is_smart else "badge-grey")
+        except Exception as e:
+            print(f"[LOQ] UI Update Error: {e}")
 
 

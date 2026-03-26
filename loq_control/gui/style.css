@@ -1,127 +1,202 @@
-/* 🛰️ LOQ Control v2.0.0 — Industrial Systems Design Tokens */
+/* 🛰️ LOQ Control v2.0.0 — Industrial Systems Design Tokens (GTK4 Compatible) */
 
-:root {
-    /* Base Colors - Default (Dark) */
-    --bg-base: #0b0f14;
-    --card-bg: rgba(18, 24, 33, 0.75);
-    --card-border: rgba(31, 42, 54, 0.8);
-    --text-main: #e6edf3;
-    --text-dim: #8b9bb4;
-    
-    /* Metrics Accents */
-    --accent-cpu: #ff7a18;
-    --accent-gpu: #00d4ff;
-    --accent-thermal: #ff3b3b;
-    --accent-power: #8cff00;
-    --accent-success: #2ec27e;
-    
-    /* Effects */
-    --glass-blur: 12px;
-    --neon-glow: 0 0 15px rgba(0, 212, 255, 0.15);
-}
+/* --- Theme Tokens (Dark Default) --- */
+@define-color bg_base #080a0d;
+@define-color bg_sidebar #0b0f14;
+@define-color card_bg rgba(18, 24, 33, 0.85);
+@define-color card_border rgba(31, 42, 54, 0.6);
+@define-color text_main #f0f4f8;
+@define-color text_dim #94a3b8;
+@define-color selection_bg rgba(0, 212, 255, 0.15);
 
-/* Light Theme Overrides */
-.light-theme {
-    --bg-base: #f4f7fb;
-    --card-bg: rgba(255, 255, 255, 0.85);
-    --card-border: rgba(208, 215, 226, 0.8);
-    --text-main: #0a0f18;
-    --text-dim: #5c6a7a;
-}
+/* Metrics Accents */
+@define-color accent_cpu #ff8a3d;
+@define-color accent_gpu #00d4ff;
+@define-color accent_thermal #ff4d4d;
+@define-color accent_power #a3ff33;
+@define-color accent_success #34d399;
 
-/* Global Typography */
+/* --- Typography --- */
 * {
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: "Inter", "Cantarell", "Sans", sans-serif;
+    transition: background-color 0.25s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .monospace {
-    font-family: "JetBrains Mono", "Monospace", monospace;
-    font-size: 0.9rem;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 0.85rem;
 }
 
 label.heading {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 800;
-    letter-spacing: -0.02em;
-    font-family: "Orbitron", "Inter", sans-serif;
-    color: var(--text-main);
+    letter-spacing: -0.03em;
+    color: @text_main;
 }
 
 label.caption {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    font-weight: 500;
+    font-size: 0.85rem;
+    color: @text_dim;
+    font-weight: 600;
 }
 
 label.caption-dim {
     font-size: 0.75rem;
-    opacity: 0.5;
-    color: var(--text-dim);
+    color: @text_dim;
 }
 
-/* Industrial Card Layout */
+/* --- Industrial Card Layout --- */
 .industrial-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 18px;
+    background: linear-gradient(145deg, @card_bg, rgba(12, 18, 26, 0.9));
+    border: 1px solid @card_border;
+    border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    /* Note: backdrop-filter is not fully supported in GTK4 CSS but we keep tokens ready */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.05);
 }
 
-/* Navigation Rail */
+/* --- Navigation Rail --- */
 .sidebar {
-    background: var(--bg-base);
-    border-right: 1px solid var(--card-border);
-    padding: 12px;
+    background-color: @bg_sidebar;
+    border-right: 1px solid @card_border;
 }
 
 .sidebar-button {
-    padding: 12px 18px;
-    border-radius: 12px;
+    padding: 10px 16px;
+    border-radius: 10px;
     font-weight: 600;
-    transition: all 0.2s ease;
-    border: none;
+    margin: 2px 8px;
     background: transparent;
-    color: var(--text-dim);
+    color: @text_dim;
+    border: 1px solid transparent;
 }
 
 .sidebar-button:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-main);
+    background-color: rgba(255, 255, 255, 0.04);
+    color: @text_main;
+    border-color: rgba(255, 255, 255, 0.05);
 }
 
 .sidebar-button.active {
-    background: rgba(0, 212, 255, 0.1);
-    color: var(--accent-gpu);
-    box-shadow: inset 3px 0 0 var(--accent-gpu);
+    background: linear-gradient(to right, rgba(0, 212, 255, 0.12), transparent);
+    color: @accent_gpu;
+    border-left: 3px solid @accent_gpu;
+    border-radius: 0 8px 8px 0;
 }
 
-/* Status Badges */
-.status-badge {
+/* --- Profile Selector --- */
+.profile-card {
+    padding: 14px;
     border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+}
+
+.profile-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.profile-active {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 212, 255, 0.05));
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+}
+
+.profile-active label {
+    color: @accent_gpu;
+    font-weight: 800;
+}
+
+/* --- Status Badges --- */
+.status-badge {
+    border-radius: 6px;
     padding: 4px 12px;
     font-size: 0.7rem;
-    font-weight: 800;
+    font-weight: 900;
     text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-.badge-blue   { background: rgba(53, 132, 228, 0.2); color: #3584e4; border: 1px solid rgba(53, 132, 228, 0.3); }
-.badge-green  { background: rgba(46, 194, 126, 0.2); color: #2ec27e; border: 1px solid rgba(46, 194, 126, 0.3); }
-.badge-red    { background: rgba(224, 27, 36, 0.2);  color: #e01b24; border: 1px solid rgba(224, 27, 36, 0.3); }
-.badge-orange { background: rgba(255, 120, 0, 0.2);  color: #ff7800; border: 1px solid rgba(255, 120, 0, 0.3); }
+.badge-blue   { background-color: rgba(0, 212, 255, 0.12); color: #00d4ff; border: 1px solid rgba(0, 212, 255, 0.3); }
+.badge-green  { background-color: rgba(52, 211, 153, 0.12); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+.badge-red    { background-color: rgba(239, 68, 68, 0.12);  color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-orange { background-color: rgba(251, 146, 60, 0.12); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
+.badge-grey   { background-color: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+/* --- Window & Controls --- */
+window {
+    background-color: @bg_base;
+    color: @text_main;
+}
+
+switch {
+    transition: all 0.2s;
+}
+
+switch:checked slider {
+    background-color: @accent_gpu;
+}
+
+/* ================= LIGHT THEME OVERRIDES ================= */
+
+.light-theme {
+    color: #1e293b;
+    background-color: #f8fafc;
+}
+
+.light-theme window {
+    background-color: #f8fafc;
+    color: #1e293b;
+}
+
+.light-theme .industrial-card {
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.light-theme .sidebar {
+    background-color: #f1f5f9;
+    border-right: 1px solid #e2e8f0;
+}
+
+.light-theme .sidebar-button.active {
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
+    color: #2563eb;
+    border-left-color: #2563eb;
+}
+
+.light-theme .profile-active {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.light-theme .profile-active label {
+    color: #2563eb;
+}
+
+.light-theme .badge-grey {
+    background-color: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+}
+
+/* Battery Specific (Dynamic Shadows) */
+.battery-status-full {
+    color: #34d399;
+    text-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
+}
+
+.battery-status-charging {
+    color: #fb923c;
+    text-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
+}
 
 /* Meter Styling */
 levelbar block.filled {
     border-radius: 4px;
 }
 
-levelbar.cpu-meter block.filled { background-color: var(--accent-cpu); }
-levelbar.gpu-meter block.filled { background-color: var(--accent-gpu); }
-levelbar.thermal-meter block.filled { background-color: var(--accent-thermal); }
-
-/* Window Background */
-window {
-    background-color: var(--bg-base);
-    color: var(--text-main);
-}
+levelbar.cpu-meter block.filled { background-color: @accent_cpu; }
+levelbar.gpu-meter block.filled { background-color: @accent_gpu; }
+levelbar.thermal-meter block.filled { background-color: @accent_thermal; }

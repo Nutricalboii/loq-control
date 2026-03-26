@@ -65,12 +65,13 @@ class SmartFanEngine:
         with cls._init_lock:
             if cls._instance is None:
                 cls._instance = SmartFanEngine(state)
+            assert cls._instance is not None
             return cls._instance
 
     @classmethod
     def reset(cls):
         with cls._init_lock:
-            if cls._instance:
+            if cls._instance is not None:
                 cls._instance.stop()
                 cls._instance = None
 
@@ -97,12 +98,17 @@ class SmartFanEngine:
         self._history.clear()
         
         # Put EC into custom mode to accept manual granular PWM streams
+        # Note: 'custom' may fail with I/O error if on battery power.
         if not fan.custom():
-            log.hardware("error", "SmartFan could not engage custom platform_profile! Curve aborted.")
-            self._running = False
-            return
+            log.hardware("warning", "SmartFan could not engage custom profile (likely on battery). Continuing with current profile.")
+            # We don't abort here because some models still allow PWM writes in balanced mode.
+            # But we update the state to reflect reality.
+            res = fan.get_current_mode()
+            if res != "unknown":
+                self._state.force_set("fan_mode", res)
+        else:
+            self._state.force_set("fan_mode", "custom")
             
-        self._state.force_set("fan_mode", "custom")
         self._running = True
         
         self._thread = threading.Thread(target=self._loop, daemon=True, name="SmartFan")

@@ -44,9 +44,13 @@ class StateManager:
         "fan_mode": {"quiet", "balanced", "performance", "custom"},
         "charger_connected": {True, False},
         "conservation_mode": {True, False},
+        "rapid_charge_active": {True, False},
+        "smart_charge_active": {True, False},
         "manual_override": {True, False},
         "platform_profile": {"quiet", "balanced", "performance"},
         "smart_fan_active": {True, False},
+        "battery_start_threshold": set(range(0, 101)),
+        "battery_end_threshold": set(range(0, 101)),
     }
 
     # ------------------------------------------------------------------
@@ -78,9 +82,14 @@ class StateManager:
             "fan_mode": "balanced",
             "charger_connected": True,
             "conservation_mode": False,
+            "rapid_charge_active": False,
+            "smart_charge_active": False,
+            "smart_charge_wake_time": "08:00",
             "manual_override": False,
             "platform_profile": "balanced",
             "smart_fan_active": False,
+            "battery_start_threshold": 75,
+            "battery_end_threshold": 80,
         }
 
         self._last_transition_ts: float = 0.0
@@ -250,6 +259,8 @@ class StateManager:
                         self._transition_lock.release()
                     except RuntimeError:
                         pass # wasn't locked but flag was True? sync it.
+                else:
+                    return False
 
         acquired = self._transition_lock.acquire(blocking=False)
         if acquired:

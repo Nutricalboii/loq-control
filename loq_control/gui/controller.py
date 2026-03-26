@@ -40,6 +40,16 @@ class AppController:
     def set_conservation(self, enabled: bool) -> HWResult:
         return self._hw.set_conservation(enabled, source="gui")
 
+    def set_battery_thresholds(self, start: int, end: int) -> HWResult:
+        return self._hw.set_battery_thresholds(start, end, source="gui")
+
+    def set_rapid_charge(self, enabled: bool) -> HWResult:
+        return self._hw.set_rapid_charge(enabled, source="gui")
+
+    def update_battery_settings(self, settings: Dict[str, Any]):
+        from loq_control.core.battery_charge_manager import BatteryChargeManager
+        BatteryChargeManager.get(self._state).update_settings(settings)
+
     def apply_preset(self, preset: str) -> HWResult:
         return self._hw.apply_preset(preset, source="gui")
 
