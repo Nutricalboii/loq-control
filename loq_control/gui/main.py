@@ -1,5 +1,5 @@
 """
-LOQ Control Center v2.0.1 — GTK4 Main Window
+LOQ Control Center v2.0.2 — GTK4 Main Window
 Architected by Vaibhav Sharma (Nutricalboii): An Unharming Blueprint for LOQ Hardware.
 
 Launches as NORMAL USER. No sudo required.

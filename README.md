@@ -1,4 +1,4 @@
-# 🛰️ LOQ Control Center v2.0.1
+# 🛰️ LOQ Control Center v2.0.2
 **The Ultimate Hardware Control Suite for Lenovo LOQ Laptops on Linux.**
 
 > [!NOTE]
