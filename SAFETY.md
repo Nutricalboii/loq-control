@@ -9,5 +9,10 @@ To prevent thermal runaway, LOQ Control implements a **Deadman Switch** safety p
 2. **Critical Threshold**: If any core or junction sensor hits **95°C**, the software instantly relinquishes control.
 3. **BIOS Rescue**: On a safety trigger, the command `echo performance > platform_profile` is forced to the kernel, engaging the native manufacturer fan curves for immediate cooling.
 
-## Stability Validation
-Prior to enabling the Smart Fan engine in production, it is recommended to run the `loq_control/core/diagnostic_tool.py` to ensure your system does not exhibit fan oscillations or state-lock contention.
+## Stability & Universal Support
+LOQ Control is tested for stability across multiple Linux distributions. While the underlying hardware calls are universal (ACPI/EC), the following safety measures ensure a consistent experience:
+
+1. **Kernel Compatibility**: Requires Kernel 5.15+ for reliable `platform_profile` support.
+2. **Distro-Agnostic Failbacks**: If a distro-specific utility (like `prime-select`) is missing, the engine gracefully disables the affected feature while maintaining core thermal protections.
+3. **Permission Safety**: All hardware writes are gated behind `sudo` to prevent unauthorized EC manipulation.
+
