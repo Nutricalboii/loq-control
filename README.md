@@ -11,9 +11,10 @@
 - **🛡️ Multi-Point Security**: Zero-sudo GUI architecture using `pkexec` for granular privilege escalation.
 - **🧠 Thermal Intelligence**: An adaptive Policy Engine that automatically escalates cooling before heat-soak occurs.
 - **🎮 GPU Management**: Seamlessly switch between Integrated, Hybrid, and Dedicated NVIDIA modes.
-- **⚡ Performance Profiles**: Instant access to Power Saver, Balanced, and Performance modes with ACPI integration.
-- **🌡️ Advanced Monitoring**: High-precision, real-time telemetry for CPU/GPU temperatures and power draw.
-- **🎨 Modern UI**: A sleek GTK4 interface with persistent theme synchronization.
+- **⚡ Performance Profiles**: Instant access to Quiet, Balanced, Performance, and **🟣 Custom (Purple Mode)**.
+- **📈 interactive Fan Tuner**: Full 7-point interactive fan curve editor with Cairo rendering and hardware safety enforcement.
+- **⚙️ Granular Tuning**: CPU PL1/PL2 power limits, GPU cTGP control, and Overclocking offsets.
+- **🎨 Modern UI**: A sleek GTK4 interface with persistent theme synchronization and Fn+Q hardware sync.
 
 ---
 
