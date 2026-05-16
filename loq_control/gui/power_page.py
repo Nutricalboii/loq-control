@@ -202,12 +202,14 @@ class PowerPage(Gtk.Box):
         self.ctrl._state.force_set("power_profile", profile)
         self.update_stats()
 
+        self.window.set_hardware_mode(True)
         def _do():
             try:
                 result = self.ctrl.set_power_profile(profile)
                 if not result.success:
                     GLib.idle_add(self.window._show_error, result.message)
             finally:
+                self.window.set_hardware_mode(False)
                 GLib.idle_add(lambda: self.set_sensitive(True))
                 GLib.idle_add(self.update_stats)
 

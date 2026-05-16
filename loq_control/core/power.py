@@ -19,44 +19,50 @@ def get_current_profile() -> str:
 
 
 def _set_profile(category: str) -> bool:
-    """Best-effort match for a profile category and write it."""
+    """Apply power profile using powerprofilesctl or sysfs fallback."""
+    # Mapping for powerprofilesctl
+    daemon_map = {
+        "battery": "power-saver",
+        "balanced": "balanced",
+        "performance": "performance"
+    }
+    
+    target_daemon = daemon_map.get(category)
+    
+    # 1. Try powerprofilesctl (The standard for Fedora/modern Ubuntu)
+    if shutil.which("powerprofilesctl"):
+        cmd = ["powerprofilesctl", "set", target_daemon]
+        # powerprofilesctl sometimes needs pkexec depending on policy
+        success = run_privileged(cmd)
+        if success:
+            return True
+
+    # 2. Sysfs Fallback (For minimal distros or if daemon fails)
     if not ACPI_PROFILE.exists():
-        log.error("ACPI platform_profile not found")
         return False
         
     choices_path = Path("/sys/firmware/acpi/platform_profile_choices")
     choices = choices_path.read_text().split() if choices_path.exists() else []
     
-    # Mapping table (Standardized -> Hardware Specific)
-    mapping = {
+    hw_mapping = {
         "battery": ["low-power", "quiet", "power-saver"],
         "balanced": ["balanced", "default", "middle"],
         "performance": ["max-power", "performance", "turbo", "high-performance"]
     }
     
-    target = None
-    for option in mapping.get(category, []):
+    target_hw = None
+    for option in hw_mapping.get(category, []):
         if option in choices:
-            target = option
+            target_hw = option
             break
             
-    if not target:
-        # If no match found in our mapping, don't just use the category name
-        # unless it's explicitly in choices.
-        if category in choices:
-            target = category
-        else:
-            log.error("No valid hardware profile found for category: %s", category)
-            return False
+    if target_hw:
+        cmd = ["sh", "-c", f"echo {target_hw} > {ACPI_PROFILE}"]
+        return run_privileged(cmd)
         
-    # Use 'tee' for cleaner sysfs writing via pkexec
-    # We use sh -c to allow the echo/redirect pattern which is common for sysfs
-    cmd = ["sh", "-c", f"echo {target} > {ACPI_PROFILE}"]
-    success = run_privileged(cmd)
-    
-    if not success:
-        log.error("Failed to set profile %s (target: %s)", category, target)
-    return success
+    return False
+
+import shutil # Ensure shutil is available
 
 def battery() -> bool:
     return _set_profile("battery")

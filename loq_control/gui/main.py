@@ -107,7 +107,8 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # ================= STACK =================
         self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self.stack.set_transition_duration(400)
         self.stack.set_hexpand(True)
         self.stack.set_vexpand(True)
         root.append(self.stack)
@@ -153,6 +154,19 @@ class MainWindow(Gtk.ApplicationWindow):
         self.thermals_page.update_stats()
         self.power_page.update_stats()
         return True
+
+    def set_hardware_mode(self, active: bool):
+        """Prepares UI for privileged hardware write (prevents focus stealing)."""
+        GLib.idle_add(self._set_hw_mode_idle, active)
+
+    def _set_hw_mode_idle(self, active):
+        if active:
+            self.set_sensitive(False)
+            # Give a visual hint that we are waiting for something
+            self.get_root().add_css_class("hardware-busy")
+        else:
+            self.set_sensitive(True)
+            self.get_root().remove_css_class("hardware-busy")
 
     def _apply_theme(self, theme):
         settings = Gtk.Settings.get_default()

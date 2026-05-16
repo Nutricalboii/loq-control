@@ -234,3 +234,9 @@ levelbar.thermal-meter block.filled { background-color: @accent_thermal; }
 .light-theme levelbar.cpu-meter block.filled { background-color: #f97316; }
 .light-theme levelbar.gpu-meter block.filled { background-color: #0ea5e9; }
 .light-theme levelbar.thermal-meter block.filled { background-color: #ef4444; }
+
+/* Hardware Busy State */
+.hardware-busy {
+    opacity: 0.7;
+    cursor: wait;
+}

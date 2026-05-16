@@ -92,13 +92,17 @@ class GPUPage(Gtk.Box):
         return True
 
     def _gpu_switch(self, mode: str):
+        self.window.set_hardware_mode(True)
         def _do():
-            result = self.ctrl.switch_gpu(mode)
-            if result.success and result.needs_reboot:
-                GLib.idle_add(self.window._show_reboot_dialog)
-            elif result.success:
-                GLib.idle_add(self.window.update_stats)
-            elif not result.success:
-                GLib.idle_add(self.window._show_error, result.message)
+            try:
+                result = self.ctrl.switch_gpu(mode)
+                if result.success and result.needs_reboot:
+                    GLib.idle_add(self.window._show_reboot_dialog)
+                elif result.success:
+                    GLib.idle_add(self.window.update_stats)
+                elif not result.success:
+                    GLib.idle_add(self.window._show_error, result.message)
+            finally:
+                self.window.set_hardware_mode(False)
 
         threading.Thread(target=_do, daemon=True).start()
