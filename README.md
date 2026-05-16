@@ -101,7 +101,7 @@ To enable automatic profile switching and hardware monitoring on boot:
 
 ## 🏷️ Developer & Credits
 **Architected & Developed by:**  
-👤 **Vaibhav Pandit** ([@nutricalboii](https://github.com/nutricalboii))
+👤 **Vaibhav Sharma** ([Nutricalboii](https://github.com/Nutricalboii))
 
 *“This project is more than a tool—it is a secure blueprint for how hardware and software should interact on Linux.”*
 

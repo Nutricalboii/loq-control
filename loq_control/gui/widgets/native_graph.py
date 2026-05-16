@@ -55,7 +55,7 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         
         # 1. Background
         if is_light:
-            cr.set_source_rgba(0.96, 0.97, 0.98, 1.0) # Light Grey
+            cr.set_source_rgba(0.98, 0.99, 1.0, 1.0) # Very Light Blue-Grey
         else:
             cr.set_source_rgba(0.07, 0.09, 0.13, 0.8) # Industrial Dark
         cr.paint()
@@ -68,7 +68,7 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         cr.set_line_width(0.5)
         
         # Vertical grid
-        if is_light: cr.set_source_rgba(0.0, 0.5, 0.8, 0.1) # Soft Blue
+        if is_light: cr.set_source_rgba(0.0, 0.2, 0.5, 0.08) # Defined but subtle
         else: cr.set_source_rgba(0.0, 0.83, 1.0, 0.05)
         
         for i in range(1, 10):
@@ -79,7 +79,7 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         grid_steps = 4
         for i in range(1, grid_steps):
             y = height * (i / float(grid_steps))
-            if is_light: cr.set_source_rgba(0.0, 0.5, 0.8, 0.15)
+            if is_light: cr.set_source_rgba(0.0, 0.2, 0.5, 0.12)
             else: cr.set_source_rgba(0.0, 0.83, 1.0, 0.1)
             cr.move_to(0, y)
             cr.line_to(width, y)
@@ -87,15 +87,12 @@ class NativePerformanceGraph(Gtk.DrawingArea):
             
             # Y-Axis Labels
             val = 100 - int((i / grid_steps) * 100)
-            if is_light: cr.set_source_rgba(0.3, 0.3, 0.3, 0.6)
+            if is_light: cr.set_source_rgba(0.2, 0.3, 0.4, 0.7)
             else: cr.set_source_rgba(1, 1, 1, 0.3)
             cr.move_to(width - 40, y - 4)
             cr.show_text(f"{val}%")
 
         # 2. Draw Metrics
-        legend_x = 20
-        legend_y = 25
-        
         if self.mode in ("all", "cpu"):
             self._plot_data(cr, self.cpu_history, 0, 100, width, height, (1.0, 0.48, 0.09)) # accent-cpu
             
@@ -103,11 +100,13 @@ class NativePerformanceGraph(Gtk.DrawingArea):
             self._plot_data(cr, self.temp_history, 30, 100, width, height, (1.0, 0.23, 0.23)) # accent-thermal
             
         if self.mode in ("all", "power"):
-            self._plot_data(cr, self.watt_history, 0, 80, width, height, (0.55, 1.0, 0.0)) # accent-power
+            p_color = (0.2, 0.8, 0.0) if is_light else (0.55, 1.0, 0.0)
+            self._plot_data(cr, self.watt_history, 0, 80, width, height, p_color) # accent-power
 
     def _plot_data(self, cr, data, min_val, max_val, width, height, color):
         if len(data) < 2: return
         
+        is_light = self.get_root() and self.get_root().has_css_class("light-theme")
         dx = width / (self.max_points - 1)
         r, g, b = color
         
@@ -118,7 +117,8 @@ class NativePerformanceGraph(Gtk.DrawingArea):
 
         # 1. Glow Effect (Thick low-opacity line)
         cr.set_line_width(4.0)
-        cr.set_source_rgba(r, g, b, 0.15)
+        glow_alpha = 0.1 if is_light else 0.15
+        cr.set_source_rgba(r, g, b, glow_alpha)
         cr.move_to(0, scale_y(data[0]))
         for i, val in enumerate(data):
             cr.line_to(i * dx, scale_y(val))
@@ -126,7 +126,7 @@ class NativePerformanceGraph(Gtk.DrawingArea):
 
         # 2. Main Line
         cr.set_line_width(1.8)
-        cr.set_source_rgba(r, g, b, 0.9)
+        cr.set_source_rgba(r, g, b, 0.95)
         cr.move_to(0, scale_y(data[0]))
         for i, val in enumerate(data):
             cr.line_to(i * dx, scale_y(val))
@@ -138,7 +138,8 @@ class NativePerformanceGraph(Gtk.DrawingArea):
         cr.close_path()
         
         gradient = cairo.LinearGradient(0, scale_y(data[0]), 0, height)
-        gradient.add_color_stop_rgba(0, r, g, b, 0.2)
+        fill_alpha = 0.1 if is_light else 0.2
+        gradient.add_color_stop_rgba(0, r, g, b, fill_alpha)
         gradient.add_color_stop_rgba(1, r, g, b, 0.0)
         cr.set_source(gradient)
         cr.fill()

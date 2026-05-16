@@ -42,25 +42,28 @@ class HexStatus(Gtk.DrawingArea):
 
         # Techy Rings (Background)
         cr.set_line_width(0.5)
-        cr.set_source_rgba(1, 1, 1, 0.03)
+        if is_light: cr.set_source_rgba(0, 0, 0, 0.05)
+        else: cr.set_source_rgba(1, 1, 1, 0.03)
         for r_factor in [0.7, 0.9, 1.1]:
             cr.arc(cx, cy, size * r_factor, 0, 2 * math.pi)
             cr.stroke()
 
         # Crosshair lines
-        cr.set_source_rgba(1, 1, 1, 0.05)
+        if is_light: cr.set_source_rgba(0, 0, 0, 0.05)
+        else: cr.set_source_rgba(1, 1, 1, 0.05)
         cr.move_to(cx - size*1.2, cy); cr.line_to(cx + size*1.2, cy); cr.stroke()
         cr.move_to(cx, cy - size*1.2); cr.line_to(cx, cy + size*1.2); cr.stroke()
 
         # Draw outer glowing border
         cr.set_line_width(2)
         r, g, b = self._hex_to_rgb(self.color)
-        cr.set_source_rgba(r, g, b, 0.1)
+        cr.set_source_rgba(r, g, b, 0.15)
         draw_hex(cr, size + 2)
         cr.stroke()
 
         # Draw main hex base
-        cr.set_source_rgba(0.1, 0.15, 0.2, 0.5)
+        if is_light: cr.set_source_rgba(0.95, 0.96, 0.98, 0.8)
+        else: cr.set_source_rgba(0.1, 0.15, 0.2, 0.5)
         draw_hex(cr, size)
         cr.fill_preserve()
         cr.set_source_rgba(r, g, b, 0.3)
@@ -75,8 +78,8 @@ class HexStatus(Gtk.DrawingArea):
             fill_y = cy + size - (size * 2 * self.percentage)
             # Add a subtle gradient to the fill
             grad = cairo.LinearGradient(0, fill_y, 0, cy + size)
-            grad.add_color_stop_rgba(0, r, g, b, 0.6)
-            grad.add_color_stop_rgba(1, r, g, b, 0.2)
+            grad.add_color_stop_rgba(0, r, g, b, 0.7)
+            grad.add_color_stop_rgba(1, r, g, b, 0.3)
             cr.set_source(grad)
             cr.rectangle(0, fill_y, width, height)
             cr.fill()
@@ -90,14 +93,14 @@ class HexStatus(Gtk.DrawingArea):
         val_text = f"{int(self.percentage * 100)}%"
         ext = cr.text_extents(val_text)
         cr.move_to(cx - ext.width / 2, cy + ext.height / 3)
-        if is_light: cr.set_source_rgba(0.1, 0.1, 0.1, 0.9)
-        else: cr.set_source_rgba(1, 1, 1, 0.9)
+        if is_light: cr.set_source_rgba(0.06, 0.09, 0.16, 0.95)
+        else: cr.set_source_rgba(1, 1, 1, 0.95)
         cr.show_text(val_text)
 
         # Label text
         cr.set_font_size(10)
-        if is_light: cr.set_source_rgba(0.2, 0.2, 0.2, 0.7)
-        else: cr.set_source_rgba(r, g, b, 0.7)
+        if is_light: cr.set_source_rgba(0.3, 0.4, 0.5, 0.8)
+        else: cr.set_source_rgba(r, g, b, 0.8)
         ext = cr.text_extents(self.label)
         cr.move_to(cx - ext.width / 2, cy - size / 1.5)
         cr.show_text(self.label)

@@ -141,55 +141,85 @@ switch:checked slider {
 
 .light-theme {
     color: #1e293b;
-    background-color: #f8fafc;
+    background-color: #f1f5f9;
+}
+
+.text-dark {
+    color: #0f172a !important;
 }
 
 .light-theme window {
-    background-color: #f8fafc;
+    background-color: #f1f5f9;
     color: #1e293b;
 }
 
 .light-theme .industrial-card {
     background: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04), 
+                0 4px 10px rgba(0, 0, 0, 0.02);
     border: 1px solid #e2e8f0;
 }
 
 .light-theme .sidebar {
-    background-color: #f1f5f9;
+    background-color: #ffffff;
     border-right: 1px solid #e2e8f0;
 }
 
+.light-theme label.heading {
+    color: #0f172a;
+}
+
+.light-theme label.caption {
+    color: #64748b;
+}
+
+.light-theme .sidebar-button {
+    color: #64748b;
+}
+
+.light-theme .sidebar-button:hover {
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
 .light-theme .sidebar-button.active {
-    background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
+    background: linear-gradient(to right, rgba(37, 99, 235, 0.08), transparent);
     color: #2563eb;
-    border-left-color: #2563eb;
+    border-left: 3px solid #2563eb;
+    border-radius: 0 8px 8px 0;
+}
+
+.light-theme .profile-card {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
 }
 
 .light-theme .profile-active {
-    background: rgba(59, 130, 246, 0.05);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.03));
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
 .light-theme .profile-active label {
     color: #2563eb;
 }
 
-.light-theme .badge-grey {
-    background-color: #f1f5f9;
-    color: #64748b;
-    border: 1px solid #cbd5e1;
-}
+/* Light Theme Badges - Higher Contrast */
+.light-theme .badge-blue   { background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.light-theme .badge-green  { background-color: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.light-theme .badge-red    { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.light-theme .badge-orange { background-color: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+.light-theme .badge-grey   { background-color: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
 
 /* Battery Specific (Dynamic Shadows) */
 .battery-status-full {
-    color: #34d399;
-    text-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
+    color: #10b981;
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
 }
 
 .battery-status-charging {
-    color: #fb923c;
-    text-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
+    color: #f59e0b;
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
 }
 
 /* Meter Styling */
@@ -200,3 +230,7 @@ levelbar block.filled {
 levelbar.cpu-meter block.filled { background-color: @accent_cpu; }
 levelbar.gpu-meter block.filled { background-color: @accent_gpu; }
 levelbar.thermal-meter block.filled { background-color: @accent_thermal; }
+
+.light-theme levelbar.cpu-meter block.filled { background-color: #f97316; }
+.light-theme levelbar.gpu-meter block.filled { background-color: #0ea5e9; }
+.light-theme levelbar.thermal-meter block.filled { background-color: #ef4444; }

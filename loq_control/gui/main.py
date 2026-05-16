@@ -1,6 +1,6 @@
 """
 LOQ Control Center v2.0.0 — GTK4 Main Window
-Architected by Vaibhav Pandit: An Unharming Blueprint for LOQ Hardware.
+Architected by Vaibhav Sharma (Nutricalboii): An Unharming Blueprint for LOQ Hardware.
 
 Launches as NORMAL USER. No sudo required.
 Hardware writes escalate via pkexec when needed.
@@ -92,7 +92,7 @@ class MainWindow(Gtk.ApplicationWindow):
         credit_box.set_margin_start(10)
         credit_box.set_margin_end(10)
         
-        dev_lbl = Gtk.Label(label="By Vaibhav Pandit")
+        dev_lbl = Gtk.Label(label="By Vaibhav Sharma (Nutricalboii)")
         dev_lbl.add_css_class("caption")
         dev_lbl.set_halign(Gtk.Align.START)
         credit_box.append(dev_lbl)

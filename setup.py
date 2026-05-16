@@ -16,7 +16,7 @@ setup(
             "loq-report=loq_control.tools.stability_report:main",
         ],
     },
-    author="Vaibhav Pandit",
+    author="Vaibhav Sharma (Nutricalboii)",
     description="Advanced Hardware Control for Lenovo LOQ Laptops",
     python_requires=">=3.8",
 )

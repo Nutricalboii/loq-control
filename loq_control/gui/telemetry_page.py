@@ -42,7 +42,7 @@ class TelemetryPage(Gtk.Box):
 
     def _make_card(self, title_text, mode):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.add_css_class("card")
+        box.add_css_class("industrial-card")
         box.set_hexpand(True)
         box.set_vexpand(True)
         
