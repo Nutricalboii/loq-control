@@ -40,7 +40,7 @@ class StateManager:
     # ---- Valid values for each key ----
     VALID_VALUES = {
         "gpu_mode": {"integrated", "hybrid", "nvidia"},
-        "power_profile": {"power-saver", "balanced", "performance"},
+        "power_profile": {"power-saver", "balanced", "performance", "custom"},
         "fan_mode": {"quiet", "balanced", "performance", "custom"},
         "charger_connected": {True, False},
         "conservation_mode": {True, False},

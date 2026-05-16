@@ -90,7 +90,7 @@ class FnQSync:
             return cls._instance
 
     def _poll_loop(self):
-        """1-second polling loop to catch Fn+Q presses that event_engine misses."""
+        """1-second polling loop to catch Fn+Q presses."""
         while not self._stop.is_set():
             self._stop.wait(1.0)
             if self._stop.is_set():
@@ -100,9 +100,11 @@ class FnQSync:
                 if true_profile is None:
                     continue
                 current = self._state.get("power_profile")
+                # Don't override if we're in custom mode (hardware won't report 'custom')
+                if current == "custom":
+                    continue
                 if current != true_profile:
                     log.hardware("info", "Fn+Q poll: profile changed %s → %s", current, true_profile)
-                    # Update GUI-facing state directly
                     self._state.force_set("power_profile", true_profile, source="fnq_sync")
             except Exception as e:
                 log.hardware("error", "FnQSync poll error: %s", e)

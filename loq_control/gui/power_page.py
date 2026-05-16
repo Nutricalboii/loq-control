@@ -3,6 +3,7 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, GLib, Gdk
 import threading
 from typing import Dict
+from loq_control.gui.custom_mode_panel import CustomModePanel
 
 class PowerPage(Gtk.Box):
     def __init__(self, controller, window):
@@ -32,9 +33,18 @@ class PowerPage(Gtk.Box):
         self.profile_grid.set_homogeneous(True)
         self.append(self.profile_grid)
 
-        self._add_profile_card("power-saver", "Battery Saver", "Quiet / Low Power", "badge-blue")
-        self._add_profile_card("balanced", "Balanced", "Daily / Multitasking", "badge-green")
-        self._add_profile_card("performance", "Performance", "Gaming / High Load", "badge-red")
+        self._add_profile_card("power-saver", "🔵  Quiet", "Silent / Low Power", "badge-blue")
+        self._add_profile_card("balanced", "⚪  Balanced", "Daily / Auto Mode", "badge-green")
+        self._add_profile_card("performance", "🔴  Performance", "Gaming / High Load", "badge-red")
+        self._add_profile_card("custom", "🟣  Custom", "Vantage Tuner", "badge-purple")
+
+        # --- Custom Mode Revealer ---
+        self.custom_revealer = Gtk.Revealer()
+        self.custom_revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_DOWN)
+        self.custom_revealer.set_transition_duration(300)
+        self.custom_panel = CustomModePanel(on_apply=self._on_custom_applied)
+        self.custom_revealer.set_child(self.custom_panel)
+        self.append(self.custom_revealer)
 
         # --- Battery Intelligence Section ---
         self.append(Gtk.Label(label="Battery Charging Intelligence", halign=Gtk.Align.START, margin_top=20, css_classes=["caption"]))
@@ -135,13 +145,22 @@ class PowerPage(Gtk.Box):
                 else:
                     widgets["card"].remove_css_class("profile-active")
                     widgets["badge"].set_visible(False)
-            
+
+            # Show custom panel only when custom is active
+            self.custom_revealer.set_reveal_child(current == "custom")
+
             # Update switches
             self.cons_switch.set_active(bool(self.ctrl.get("conservation_mode")))
             self.rapid_switch.set_active(bool(self.ctrl.get("rapid_charge_active")))
             self.smart_switch.set_active(bool(self.ctrl.get("smart_charge_active")))
         finally:
             self._ignore_signals = False
+
+    def _on_custom_applied(self, ok):
+        """Called when user hits Apply in the custom panel."""
+        if not ok:
+            self.window._show_error("Custom profile apply had errors. Check logs.")
+
 
     def _on_conservation_toggle(self, switch, state):
         if self._ignore_signals:
@@ -193,7 +212,7 @@ class PowerPage(Gtk.Box):
             self.ctrl.update_battery_settings({"wake_time": text})
 
     def _power_switch(self, profile: str):
-        # Show visual active state immediately
+        # Visual feedback immediately
         for key, widgets in self.profile_widgets.items():
             if key == profile:
                 widgets["card"].add_css_class("profile-active")
@@ -201,6 +220,21 @@ class PowerPage(Gtk.Box):
             else:
                 widgets["card"].remove_css_class("profile-active")
                 widgets["badge"].set_visible(False)
+
+        # If custom, reveal panel and apply stored config
+        self.custom_revealer.set_reveal_child(profile == "custom")
+        if profile == "custom":
+            # Apply stored custom profile to hardware
+            from loq_control.core.custom_profile import CustomProfileConfig, CustomProfileApplicator
+            cfg = CustomProfileConfig.load()
+            self.set_sensitive(False)
+            def _do_custom():
+                CustomProfileApplicator.get().apply(cfg)
+                GLib.idle_add(self._restore_ui)
+            threading.Thread(target=_do_custom, daemon=True).start()
+            # Update state
+            self.ctrl._state.force_set("power_profile", "custom")
+            return
 
         self.set_sensitive(False)
 
@@ -212,7 +246,6 @@ class PowerPage(Gtk.Box):
             except Exception as e:
                 GLib.idle_add(self.window._show_error, str(e))
             finally:
-                # Always restore — even if an exception occurred
                 GLib.idle_add(self._restore_ui)
 
         threading.Thread(target=_do, daemon=True).start()
