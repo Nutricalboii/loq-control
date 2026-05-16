@@ -47,7 +47,8 @@ class StateManager:
         "rapid_charge_active": {True, False},
         "smart_charge_active": {True, False},
         "manual_override": {True, False},
-        "platform_profile": {"quiet", "balanced", "performance"},
+        "platform_profile": {"quiet", "balanced", "performance", "low-power",
+                              "max-power", "turbo", "default", "middle", "power-saver"},
         "smart_fan_active": {True, False},
         "battery_start_threshold": set(range(0, 101)),
         "battery_end_threshold": set(range(0, 101)),
@@ -224,7 +225,7 @@ class StateManager:
             new_value=value,
         )
 
-    def force_set(self, key: str, value: Any):
+    def force_set(self, key: str, value: Any, source: str = "force"):
         """
         Unconditionally set a value — used internally by HardwareService
         after confirming a hardware write succeeded.  Bypasses debounce and
@@ -237,7 +238,7 @@ class StateManager:
                 return
             previous = self._state[key]
             self._state[key] = value
-        self._notify_subscribers(key, previous, value, "force")
+        self._notify_subscribers(key, previous, value, source)
 
     # ------------------------------------------------------------------
     # Transition lock (used by HardwareService)

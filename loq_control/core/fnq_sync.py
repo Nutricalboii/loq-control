@@ -2,11 +2,13 @@
 Fn+Q Hardware Synchronization Engine
 
 Maps ACPI platform_profile hardware states to LOQ Control software presets.
-Listens to StateManager (driven by EventEngine) and overrides active profiles
-when the user physically presses Fn+Q.
+Listens to StateManager (driven by EventEngine) and reflects physical Fn+Q presses
+directly into the GUI via power_profile state updates.
 """
 
 import threading
+import shutil
+import subprocess
 from typing import Optional
 
 from loq_control.core.state_manager import StateManager
@@ -15,8 +17,46 @@ from loq_control.core.logger import LoqLogger
 
 log = LoqLogger.get()
 
+# Map hardware platform_profile values → our internal power_profile keys
+_HW_TO_PROFILE = {
+    "low-power":   "power-saver",
+    "quiet":       "power-saver",
+    "power-saver": "power-saver",
+    "balanced":    "balanced",
+    "default":     "balanced",
+    "performance": "performance",
+    "max-power":   "performance",
+    "turbo":       "performance",
+}
+
+# Map internal power_profile keys → powerprofilesctl profile names (for reading)
+_PPCTL_TO_PROFILE = {
+    "power-saver": "power-saver",
+    "balanced":    "balanced",
+    "performance": "performance",
+}
+
+
+def _get_true_profile() -> Optional[str]:
+    """Read current profile directly from powerprofilesctl or sysfs."""
+    if shutil.which("powerprofilesctl"):
+        try:
+            out = subprocess.check_output(
+                ["powerprofilesctl", "get"], stderr=subprocess.DEVNULL, timeout=2
+            ).decode().strip()
+            return _PPCTL_TO_PROFILE.get(out, out)
+        except Exception:
+            pass
+    try:
+        with open("/sys/firmware/acpi/platform_profile", "r") as f:
+            raw = f.read().strip()
+            return _HW_TO_PROFILE.get(raw, raw)
+    except Exception:
+        return None
+
+
 class FnQSync:
-    """Synchronizes hardware profile events with internal daemon state."""
+    """Synchronizes hardware profile events with internal daemon state and GUI."""
 
     _instance: Optional["FnQSync"] = None
     _lock = threading.Lock()
@@ -24,9 +64,18 @@ class FnQSync:
     def __init__(self, state: StateManager, hw: HardwareService):
         self._state = state
         self._hw = hw
-        
-        # We only care when the platform_profile changes from the hardware (events/poll)
-        self._state.subscribe(self._on_profile_change)
+
+        # Subscribe to platform_profile changes (from event_engine polls)
+        self._state.subscribe(self._on_platform_profile_change)
+
+        # Also do a periodic poll specifically for Fn+Q (every 1s)
+        # so the GUI stays in sync even if event_engine misses a rapid press
+        self._stop = threading.Event()
+        self._poll_thread = threading.Thread(
+            target=self._poll_loop, daemon=True, name="fnq-poller"
+        )
+        self._poll_thread.start()
+
         log.daemon("info", "Fn+Q Sync engine initialized")
 
     @classmethod
@@ -40,31 +89,52 @@ class FnQSync:
                 cls._instance = FnQSync(state, hw)
             return cls._instance
 
-    def _on_profile_change(self, key: str, old_val: str, new_val: str, source: str):
+    def _poll_loop(self):
+        """1-second polling loop to catch Fn+Q presses that event_engine misses."""
+        while not self._stop.is_set():
+            self._stop.wait(1.0)
+            if self._stop.is_set():
+                break
+            try:
+                true_profile = _get_true_profile()
+                if true_profile is None:
+                    continue
+                current = self._state.get("power_profile")
+                if current != true_profile:
+                    log.hardware("info", "Fn+Q poll: profile changed %s → %s", current, true_profile)
+                    # Update GUI-facing state directly
+                    self._state.force_set("power_profile", true_profile, source="fnq_sync")
+            except Exception as e:
+                log.hardware("error", "FnQSync poll error: %s", e)
+
+    def _on_platform_profile_change(self, key: str, old_val: str, new_val: str, source: str):
+        """React to platform_profile changes reported by event_engine."""
         if key != "platform_profile":
             return
 
-        # We only act if this was triggered natively by the hardware event loop,
-        # OR if it was explicitly passed down to be synced. If the GUI requested
-        # 'performance', the GUI itself triggers the preset, so we ignore 'gui' or 'cli'.
-        if source in ("gui", "cli", "test_mock"):
+        # Ignore changes we ourselves triggered (not a physical Fn+Q press)
+        if source in ("gui", "cli", "test_mock", "fnq_sync"):
             return
 
         if old_val == new_val:
             return
 
-        # If it's a daemon poll/udev event indicating physical Fn+Q switch:
-        log.hardware("info", f"Physical Fn+Q press detected: {old_val} -> {new_val}")
-        
-        # Override any existing user software lock and return daemon to auto control
+        # Translate hardware profile name to our internal key
+        mapped = _HW_TO_PROFILE.get(new_val)
+        if not mapped:
+            log.hardware("warn", "Fn+Q Sync: Unknown platform profile '%s'", new_val)
+            return
+
+        log.hardware("info", "Physical Fn+Q press detected: %s → %s (mapped: %s)",
+                     old_val, new_val, mapped)
+
+        # Clear any manual override so daemon can take control again
         self._state.clear_manual_override()
 
-        # Route platform profile to our named software presets
-        if new_val == "quiet":
-            self._hw.apply_preset("battery", source="fnq_sync")
-        elif new_val == "balanced":
-            self._hw.apply_preset("balanced", source="fnq_sync")
-        elif new_val == "performance":
-            self._hw.apply_preset("gaming", source="fnq_sync")
-        else:
-            log.hardware("warn", f"Fn+Q Sync: Unknown profile '{new_val}'")
+        # Directly update power_profile in state → GUI will pick this up via subscribe
+        current = self._state.get("power_profile")
+        if current != mapped:
+            self._state.force_set("power_profile", mapped, source="fnq_sync")
+
+    def stop(self):
+        self._stop.set()

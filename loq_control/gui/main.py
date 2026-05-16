@@ -32,9 +32,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.ctrl = ctrl
         self.settings = GuiSettings.get()
         
-        # Bootstrap privileges (ask once at start)
-        GLib.idle_add(self._bootstrap_privileges)
-
         # Load CSS
         self._load_css()
 
@@ -131,6 +128,9 @@ class MainWindow(Gtk.ApplicationWindow):
         self.stack.set_visible_child_name("dash")
         GLib.timeout_add(500, self.update_stats)
 
+        # Subscribe to state changes for Fn+Q live sync
+        self.ctrl.subscribe(self._on_state_changed)
+
     def _add_nav_button(self, box, label, name):
         btn = Gtk.Button(label=label)
         btn.add_css_class("sidebar-button")
@@ -155,18 +155,27 @@ class MainWindow(Gtk.ApplicationWindow):
         self.power_page.update_stats()
         return True
 
+    def _on_state_changed(self, key, old, new, source):
+        """React to hardware state changes (e.g. Fn+Q) and refresh GUI."""
+        if key in ("power_profile", "gpu_mode", "fan_mode"):
+            GLib.idle_add(self.update_stats)
+
     def set_hardware_mode(self, active: bool):
-        """Prepares UI for privileged hardware write (prevents focus stealing)."""
+        """Prepares UI for privileged hardware write."""
         GLib.idle_add(self._set_hw_mode_idle, active)
 
     def _set_hw_mode_idle(self, active):
         if active:
             self.set_sensitive(False)
-            # Give a visual hint that we are waiting for something
-            self.get_root().add_css_class("hardware-busy")
+            self.add_css_class("hardware-busy")
+            # Lower window so polkit dialog appears on top
+            if self.get_surface():
+                self.get_surface().lower()
         else:
             self.set_sensitive(True)
-            self.get_root().remove_css_class("hardware-busy")
+            self.remove_css_class("hardware-busy")
+            # Restore window focus
+            self.present()
 
     def _apply_theme(self, theme):
         settings = Gtk.Settings.get_default()
@@ -247,15 +256,9 @@ class MainWindow(Gtk.ApplicationWindow):
             subprocess.Popen("reboot", shell=True)
 
     def _bootstrap_privileges(self):
-        """Request hardware access authorization once at startup."""
-        def _do():
-            import subprocess
-            try:
-                # Dummy command to trigger pkexec prompt
-                subprocess.run(["pkexec", "true"], capture_output=True, timeout=30)
-            except:
-                pass
-        threading.Thread(target=_do, daemon=True).start()
+        """No longer needed — powerprofilesctl works without root via D-Bus.
+        envycontrol GPU switching still needs pkexec, handled per-operation."""
+        pass
 
     def _show_error(self, message: str):
         dialog = Gtk.MessageDialog(
