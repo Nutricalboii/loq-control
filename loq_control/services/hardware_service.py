@@ -194,6 +194,15 @@ class HardwareService:
     # ------------------------------------------------------------------
 
     def set_power_profile(self, profile: str, source: str = "gui") -> HWResult:
+        # 'custom' mode is managed by CustomProfileApplicator, not _POWER_WRITERS
+        if profile == "custom":
+            from loq_control.core.custom_profile import CustomProfileConfig, CustomProfileApplicator
+            cfg = CustomProfileConfig.load()
+            ok = CustomProfileApplicator.get().apply(cfg)
+            if ok:
+                self._state.force_set("power_profile", "custom")
+            return HWResult(ok, "Custom profile applied" if ok else "Custom profile apply failed")
+
         if profile not in _POWER_WRITERS:
             return HWResult(False, f"Invalid power profile: {profile}")
 

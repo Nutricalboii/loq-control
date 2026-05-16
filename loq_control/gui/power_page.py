@@ -29,8 +29,13 @@ class PowerPage(Gtk.Box):
         # --- Profile Selector ---
         self.append(Gtk.Label(label="System Mode", halign=Gtk.Align.START, margin_top=10, css_classes=["caption"]))
         
-        self.profile_grid = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        self.profile_grid.set_homogeneous(True)
+        # FlowBox auto-wraps 4 cards — prevents squishing on narrow windows
+        self.profile_grid = Gtk.FlowBox()
+        self.profile_grid.set_max_children_per_line(4)
+        self.profile_grid.set_min_children_per_line(2)
+        self.profile_grid.set_column_spacing(12)
+        self.profile_grid.set_row_spacing(12)
+        self.profile_grid.set_selection_mode(Gtk.SelectionMode.NONE)
         self.append(self.profile_grid)
 
         self._add_profile_card("power-saver", "🔵  Quiet", "Silent / Low Power", "badge-blue")
@@ -111,7 +116,11 @@ class PowerPage(Gtk.Box):
         sub.set_css_classes(["caption-dim"])
         card.append(sub)
 
-        self.profile_grid.append(card)
+        # FlowBox requires FlowBoxChild wrapper
+        child = Gtk.FlowBoxChild()
+        child.set_child(card)
+        child.set_focusable(False)  # Prevent FlowBox selection highlight
+        self.profile_grid.append(child)
         self.profile_widgets[key] = {"card": card, "badge": badge}
 
     def _add_toggle(self, parent, label, state_key, callback):

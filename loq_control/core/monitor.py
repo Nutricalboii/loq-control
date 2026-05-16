@@ -24,11 +24,19 @@ def ram_usage():
 
 def battery_power():
     try:
-        out = subprocess.check_output("sensors", shell=True).decode()
-        for line in out.splitlines():
-            if "power1:" in line:
-                return float(line.split()[1])
-    except:
+        out = subprocess.check_output(
+            ["sensors", "-j"], stderr=subprocess.DEVNULL, timeout=2
+        ).decode()
+        import json
+        data = json.loads(out)
+        for chip, vals in data.items():
+            if isinstance(vals, dict):
+                for feat, fdata in vals.items():
+                    if isinstance(fdata, dict):
+                        for sub, v in fdata.items():
+                            if "power" in sub.lower() and "input" in sub.lower():
+                                return float(v)
+    except Exception:
         pass
     return 0
 
@@ -67,13 +75,18 @@ def gpu_clock():
 
 
 def cpu_wattage() -> float:
-    """Fetch CPU package power via sensors (RAPL)."""
+    """Fetch CPU package power via RAPL sysfs (no subprocess needed)."""
     try:
-        out = subprocess.check_output("sensors", shell=True).decode()
-        for line in out.splitlines():
-            if "package id 0:" in line.lower() and "power" in line.lower():
-                return float(line.split()[3])
-    except:
+        import glob
+        # Find intel-rapl package zone energy counter
+        for path in glob.glob("/sys/class/powercap/intel-rapl:*/energy_uj"):
+            if path.count(":") == 2:  # package zone only, not sub-zones
+                import time
+                e1 = int(Path(path).read_text())
+                time.sleep(0.1)
+                e2 = int(Path(path).read_text())
+                return round((e2 - e1) / 1e5, 1)  # µJ/0.1s → W
+    except Exception:
         pass
     return 15.0  # safe fallback baseline
 
