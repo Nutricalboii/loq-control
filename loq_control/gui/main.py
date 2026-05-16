@@ -1,5 +1,5 @@
 """
-LOQ Control Center v2.0.0 — GTK4 Main Window
+LOQ Control Center v2.0.1 — GTK4 Main Window
 Architected by Vaibhav Sharma (Nutricalboii): An Unharming Blueprint for LOQ Hardware.
 
 Launches as NORMAL USER. No sudo required.
@@ -19,6 +19,7 @@ from loq_control.gui.thermals_page import ThermalsPage
 from loq_control.gui.log_viewer_page import LogViewerPage
 from loq_control.gui.telemetry_page import TelemetryPage
 from loq_control.gui.settings import GuiSettings
+from loq_control.version import VERSION, AUTHOR
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -26,7 +27,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, app, ctrl):
         super().__init__(application=app)
 
-        self.set_title("LOQ Control Center v2.0.0")
+        self.set_title(f"LOQ Control Center v{VERSION}")
         self.set_default_size(1100, 700)
         self.ctrl = ctrl
         self.settings = GuiSettings.get()
@@ -92,12 +93,12 @@ class MainWindow(Gtk.ApplicationWindow):
         credit_box.set_margin_start(10)
         credit_box.set_margin_end(10)
         
-        dev_lbl = Gtk.Label(label="By Vaibhav Sharma (Nutricalboii)")
+        dev_lbl = Gtk.Label(label=f"By {AUTHOR}")
         dev_lbl.add_css_class("caption")
         dev_lbl.set_halign(Gtk.Align.START)
         credit_box.append(dev_lbl)
         
-        blue_lbl = Gtk.Label(label="Secure Blueprint v2.0.0")
+        blue_lbl = Gtk.Label(label=f"Secure Blueprint v{VERSION}")
         blue_lbl.add_css_class("caption-dim")
         blue_lbl.set_halign(Gtk.Align.START)
         credit_box.append(blue_lbl)
