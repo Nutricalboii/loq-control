@@ -197,10 +197,6 @@ class HardwareService:
         if profile not in _POWER_WRITERS:
             return HWResult(False, f"Invalid power profile: {profile}")
 
-        if self._state.get("power_profile") == profile:
-            log.hardware("info", "[%s] Power profile already %s", source, profile)
-            return HWResult(True, f"Already in {profile}", needs_reboot=False)
-
         if not self._lock_with_retry(source):
             return HWResult(False, "Another transition in progress (system is busy, please wait)")
 
@@ -219,11 +215,11 @@ class HardwareService:
             except Exception as e:
                 log.hardware("warning", "CPU Power Limits failed to apply: %s", e)
 
-            # Then ACPI power profile script
+            # Write to hardware — always, regardless of current state
             success = _call_hw(_POWER_WRITERS, profile)
             if not success:
                 log.hardware("error", "[%s] Power profile '%s' FAILED", source, profile)
-                return HWResult(False, f"powerprofilesctl failed for '{profile}'")
+                return HWResult(False, f"Failed to set power profile '{profile}'")
 
             self._state.force_set("power_profile", profile)
             return HWResult(True, f"Power → {profile}")

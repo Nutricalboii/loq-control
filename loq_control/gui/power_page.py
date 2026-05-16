@@ -193,24 +193,31 @@ class PowerPage(Gtk.Box):
             self.ctrl.update_battery_settings({"wake_time": text})
 
     def _power_switch(self, profile: str):
-        if self.ctrl.get("power_profile") == profile:
-            return
+        # Show visual active state immediately
+        for key, widgets in self.profile_widgets.items():
+            if key == profile:
+                widgets["card"].add_css_class("profile-active")
+                widgets["badge"].set_visible(True)
+            else:
+                widgets["card"].remove_css_class("profile-active")
+                widgets["badge"].set_visible(False)
 
         self.set_sensitive(False)
-        
-        # Optimistic UI update
-        self.ctrl._state.force_set("power_profile", profile)
-        self.update_stats()
 
-        self.window.set_hardware_mode(True)
         def _do():
             try:
                 result = self.ctrl.set_power_profile(profile)
                 if not result.success:
                     GLib.idle_add(self.window._show_error, result.message)
+            except Exception as e:
+                GLib.idle_add(self.window._show_error, str(e))
             finally:
-                self.window.set_hardware_mode(False)
-                GLib.idle_add(lambda: self.set_sensitive(True))
-                GLib.idle_add(self.update_stats)
+                # Always restore — even if an exception occurred
+                GLib.idle_add(self._restore_ui)
 
         threading.Thread(target=_do, daemon=True).start()
+
+    def _restore_ui(self):
+        self.set_sensitive(True)
+        self.update_stats()
+

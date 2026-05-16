@@ -31,18 +31,20 @@ class GPUPage(Gtk.Box):
         metrics_box.append(self.temp_lbl)
         metrics_box.append(self.clock_lbl)
 
-        # Switcher
         self.append(Gtk.Separator())
         self.append(Gtk.Label(label="Mode Switching", halign=Gtk.Align.START))
         
-        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        self.append(btn_box)
+        self.btn_box = []
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.append(btn_row)
 
         igpu = Gtk.Button(label="Integrated")
         hybrid = Gtk.Button(label="Hybrid")
         nvidia = Gtk.Button(label="NVIDIA Only")
 
-        for b in [igpu, hybrid, nvidia]: btn_box.append(b)
+        for b in [igpu, hybrid, nvidia]:
+            btn_row.append(b)
+            self.btn_box.append(b)
 
         igpu.connect("clicked", lambda x: self._gpu_switch("integrated"))
         hybrid.connect("clicked", lambda x: self._gpu_switch("hybrid"))
@@ -92,17 +94,24 @@ class GPUPage(Gtk.Box):
         return True
 
     def _gpu_switch(self, mode: str):
-        self.window.set_hardware_mode(True)
+        # Disable buttons to prevent double-clicks
+        for w in self.btn_box:
+            w.set_sensitive(False)
+
         def _do():
             try:
                 result = self.ctrl.switch_gpu(mode)
                 if result.success and result.needs_reboot:
                     GLib.idle_add(self.window._show_reboot_dialog)
-                elif result.success:
-                    GLib.idle_add(self.window.update_stats)
                 elif not result.success:
                     GLib.idle_add(self.window._show_error, result.message)
+            except Exception as e:
+                GLib.idle_add(self.window._show_error, str(e))
             finally:
-                self.window.set_hardware_mode(False)
+                GLib.idle_add(self._restore_btns)
 
         threading.Thread(target=_do, daemon=True).start()
+
+    def _restore_btns(self):
+        for w in self.btn_box:
+            w.set_sensitive(True)
