@@ -29,9 +29,9 @@ def _set_profile(category: str) -> bool:
     
     # Mapping table (Standardized -> Hardware Specific)
     mapping = {
-        "battery": ["quiet", "low-power", "power-saver"],
+        "battery": ["low-power", "quiet", "power-saver"],
         "balanced": ["balanced", "default", "middle"],
-        "performance": ["performance", "turbo", "high-performance"]
+        "performance": ["max-power", "performance", "turbo", "high-performance"]
     }
     
     target = None
@@ -41,10 +41,17 @@ def _set_profile(category: str) -> bool:
             break
             
     if not target:
-        # Fallback to the requested name itself if not in choices
-        target = category
+        # If no match found in our mapping, don't just use the category name
+        # unless it's explicitly in choices.
+        if category in choices:
+            target = category
+        else:
+            log.error("No valid hardware profile found for category: %s", category)
+            return False
         
-    cmd = ["sh", "-c", f"echo '{target}' > {ACPI_PROFILE}"]
+    # Use 'tee' for cleaner sysfs writing via pkexec
+    # We use sh -c to allow the echo/redirect pattern which is common for sysfs
+    cmd = ["sh", "-c", f"echo {target} > {ACPI_PROFILE}"]
     success = run_privileged(cmd)
     
     if not success:

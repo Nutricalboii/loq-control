@@ -35,6 +35,18 @@ def custom() -> bool:
 
 def _set_mode(mode: str) -> bool:
     """Helper to set platform profile using elevated privileges."""
+    choices_path = "/sys/firmware/acpi/platform_profile_choices"
+    try:
+        with open(choices_path, "r") as f:
+            choices = f.read().split()
+    except:
+        choices = []
+
+    if mode not in choices:
+        from loq_control.core.logger import LoqLogger
+        LoqLogger.get().hardware("error", f"Fan mode '{mode}' not supported by hardware. Available: {choices}")
+        return False
+
     cmd = ["sh", "-c", f"echo {mode} > {_PROFILE_PATH}"]
     return run_privileged(cmd)
 
